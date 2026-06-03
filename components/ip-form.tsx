@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,15 +23,18 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from '@/components/ui/radio-group'
-import { floors, departments, deviceTypes, isValidIp, isIpDuplicate } from '@/lib/constants'
-import type { IpAddress, IpStatus } from '@/lib/constants'
+import { deviceTypes, isValidIp, isIpDuplicate } from '@/lib/constants'
+import { fetchApi } from '@/lib/api'
+import type { LantaiItem, DepartemenItem, IpApiItem } from '@/lib/api'
+import type { IpStatus } from '@/lib/constants'
 import { AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface IpFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  editData?: IpAddress | null
+  editData?: IpApiItem | null
+  onSaved?: () => void
 }
 
 const emptyForm = {
@@ -47,28 +50,47 @@ const emptyForm = {
   keterangan: '',
 }
 
-export function IpForm({ open, onOpenChange, editData }: IpFormProps) {
-  const [form, setForm] = useState(editData ? {
-    ipAddress: editData.ipAddress,
-    hostname: editData.hostname,
-    macAddress: editData.macAddress ?? '',
-    lantai: editData.lantai,
-    departemen: editData.departemen,
-    subDepartemen: editData.subDepartemen ?? '',
-    tipe: editData.tipe,
-    pic: editData.pic,
-    status: editData.status,
-    keterangan: editData.keterangan ?? '',
-  } : emptyForm)
+export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
+  const [floors, setFloors] = useState<LantaiItem[]>([])
+  const [departments, setDepartments] = useState<DepartemenItem[]>([])
 
+  useEffect(() => {
+    fetchApi<LantaiItem[]>('/api/lantai').then(setFloors).catch(() => {})
+    fetchApi<DepartemenItem[]>('/api/departemen').then(setDepartments).catch(() => {})
+  }, [])
+
+  const [form, setForm] = useState(emptyForm)
   const [ipError, setIpError] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
 
-  const validate = () => {
+  // Sinkronkan isi form setiap dialog dibuka (komponen tetap ter-mount)
+  useEffect(() => {
+    if (!open) return
+    setForm(editData ? {
+      ipAddress: editData.ipAddress,
+      hostname: editData.hostname,
+      macAddress: editData.macAddress ?? '',
+      lantai: editData.lantaiId,
+      departemen: editData.departemenId,
+      subDepartemen: editData.subDepartemen ?? '',
+      tipe: editData.tipe,
+      pic: editData.pic,
+      status: editData.status,
+      keterangan: editData.keterangan ?? '',
+    } : emptyForm)
+    setErrors({})
+    setIpError(null)
+  }, [open, editData])
+
+  const validate = async () => {
     const newErrors: Record<string, string> = {}
     if (!form.ipAddress) newErrors.ipAddress = 'IP Address wajib diisi'
     else if (!isValidIp(form.ipAddress)) newErrors.ipAddress = 'Format IP tidak valid'
-    else if (!editData && isIpDuplicate(form.ipAddress)) newErrors.ipAddress = 'IP sudah terdaftar'
+    else if (!editData) {
+      const duplicate = await isIpDuplicate(form.ipAddress)
+      if (duplicate) newErrors.ipAddress = 'IP sudah terdaftar'
+    }
     if (!form.hostname) newErrors.hostname = 'Hostname wajib diisi'
     if (!form.lantai) newErrors.lantai = 'Lantai wajib dipilih'
     if (!form.departemen) newErrors.departemen = 'Departemen wajib dipilih'
@@ -77,29 +99,62 @@ export function IpForm({ open, onOpenChange, editData }: IpFormProps) {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleIpChange = (value: string) => {
+  const handleIpChange = async (value: string) => {
     setForm({ ...form, ipAddress: value })
     if (value && !isValidIp(value)) {
       setIpError('Format: xxx.xxx.xxx.xxx')
-    } else if (value && isIpDuplicate(value) && !editData) {
-      setIpError('IP sudah terdaftar')
+    } else if (value && !editData) {
+      const duplicate = await isIpDuplicate(value)
+      setIpError(duplicate ? 'IP sudah terdaftar' : null)
     } else {
       setIpError(null)
     }
   }
 
   const filteredDepts = form.lantai
-    ? departments
+    ? departments.filter((d) => d.lantaiId === form.lantai)
     : departments
 
-  const handleSubmit = () => {
-    if (validate()) {
+  const handleSubmit = async () => {
+    if (!(await validate())) return
+    setSaving(true)
+    const payload = {
+      ipAddress: form.ipAddress,
+      hostname: form.hostname,
+      macAddress: form.macAddress,
+      lantaiId: form.lantai,
+      departemenId: form.departemen,
+      subDepartemen: form.subDepartemen,
+      tipe: form.tipe,
+      pic: form.pic,
+      status: form.status,
+      keterangan: form.keterangan,
+    }
+    try {
+      if (editData) {
+        await fetchApi(`/api/ip-address/${editData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      } else {
+        await fetchApi('/api/ip-address', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      }
+      onSaved?.()
       onOpenChange(false)
+    } catch (err) {
+      setErrors({ submit: err instanceof Error ? err.message : 'Gagal menyimpan. Coba lagi.' })
+    } finally {
+      setSaving(false)
     }
   }
 
   const update = (key: string, value: string | null) =>
-    setForm({ ...form, [key]: value ?? '' })
+    setForm((prev) => ({ ...prev, [key]: value ?? '' }))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -193,13 +248,13 @@ export function IpForm({ open, onOpenChange, editData }: IpFormProps) {
               <Label className={cn(errors.lantai && 'text-destructive')}>
                 Lantai <span className="text-destructive">*</span>
               </Label>
-              <Select value={form.lantai} onValueChange={(v) => { update('lantai', v); update('departemen', '') }}>
+              <Select value={form.lantai} onValueChange={(v) => setForm((prev) => ({ ...prev, lantai: v ?? '', departemen: '' }))}>
                 <SelectTrigger className={cn(errors.lantai && 'border-destructive ring-destructive/20')}>
                   <SelectValue placeholder="Pilih lantai" />
                 </SelectTrigger>
                 <SelectContent>
                   {floors.map((f) => (
-                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                    <SelectItem key={f.id} value={f.id}>{f.nama}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -220,7 +275,7 @@ export function IpForm({ open, onOpenChange, editData }: IpFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {filteredDepts.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -287,12 +342,18 @@ export function IpForm({ open, onOpenChange, editData }: IpFormProps) {
           </div>
         </div>
 
+        {errors.submit && (
+          <p className="flex items-center gap-1 rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+            <AlertCircle className="size-3.5" /> {errors.submit}
+          </p>
+        )}
+
         <div className="flex justify-end gap-3 border-t pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Batal
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit}>
-            {editData ? 'Simpan Perubahan' : 'Tambah IP'}
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit} disabled={saving}>
+            {saving ? 'Menyimpan...' : editData ? 'Simpan Perubahan' : 'Tambah IP'}
           </Button>
         </div>
       </DialogContent>

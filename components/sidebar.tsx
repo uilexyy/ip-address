@@ -1,9 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { ipAddresses } from '@/lib/constants'
+import { fetchApi } from '@/lib/api'
+import type { DashboardStats } from '@/lib/api'
 import {
   Home,
   Network,
@@ -14,7 +16,6 @@ import {
   LogOut,
   ChevronDown,
 } from 'lucide-react'
-import { useState } from 'react'
 
 const menuItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
@@ -22,7 +23,7 @@ const menuItems = [
     href: '/ip-address',
     label: 'IP Address',
     icon: Network,
-    badge: ipAddresses.length,
+    badgeKey: 'totalIp' as const,
   },
   { href: '/per-lantai', label: 'Per Lantai', icon: Layers },
   {
@@ -44,6 +45,11 @@ export function Sidebar() {
       item.children?.some(c => c.href && pathname.startsWith(c.href))
     )
   )
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+
+  useEffect(() => {
+    fetchApi<DashboardStats>('/api/dashboard/stats').then(setStats).catch(() => {})
+  }, [])
 
   return (
     <aside className="flex h-screen w-64 flex-col border-r bg-white">
@@ -103,6 +109,8 @@ export function Sidebar() {
             )
           }
 
+          const badge = item.badgeKey ? stats?.[item.badgeKey] : undefined
+
           return (
             <Link
               key={item.href}
@@ -116,9 +124,9 @@ export function Sidebar() {
             >
               <item.icon className="size-4 shrink-0" />
               <span className="flex-1">{item.label}</span>
-              {item.badge !== undefined && (
+              {badge !== undefined && (
                 <span className="flex size-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">
-                  {item.badge}
+                  {badge}
                 </span>
               )}
             </Link>

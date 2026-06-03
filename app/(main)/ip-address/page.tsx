@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Pencil, Trash2 } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Pencil, Trash2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -11,11 +11,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { Toolbar } from '@/components/toolbar'
 import { IpForm } from '@/components/ip-form'
-import { ipAddresses } from '@/lib/constants'
-import type { IpAddress } from '@/lib/constants'
+import { fetchApi } from '@/lib/api'
+import type { IpListResponse, IpApiItem } from '@/lib/api'
 
 const PER_PAGE = 20
 
@@ -26,33 +33,63 @@ export default function IpAddressPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
-  const [editData, setEditData] = useState<IpAddress | null>(null)
+  const [editData, setEditData] = useState<IpApiItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<IpApiItem | null>(null)
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [data, setData] = useState<IpListResponse | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const filtered = useMemo(() => {
-    let data = ipAddresses
-    if (search) {
-      const q = search.toLowerCase()
-      data = data.filter(
-        (ip) =>
-          ip.ipAddress.toLowerCase().includes(q) ||
-          ip.hostname.toLowerCase().includes(q) ||
-          ip.pic.toLowerCase().includes(q)
-      )
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (floorFilter !== 'all') params.set('lantai', floorFilter)
+    if (deptFilter !== 'all') params.set('departemen', deptFilter)
+    if (statusFilter !== 'all') params.set('status', statusFilter)
+    params.set('page', String(page))
+    params.set('limit', String(PER_PAGE))
+
+    try {
+      const res = await fetchApi<IpListResponse>(`/api/ip-address?${params}`)
+      setData(res)
+    } catch {
+      setData(null)
+    } finally {
+      setLoading(false)
     }
-    if (floorFilter !== 'all') data = data.filter((ip) => ip.lantai === floorFilter)
-    if (deptFilter !== 'all') data = data.filter((ip) => ip.departemen === deptFilter)
-    if (statusFilter !== 'all') data = data.filter((ip) => ip.status === statusFilter)
-    return data
-  }, [search, floorFilter, deptFilter, statusFilter])
+  }, [search, floorFilter, deptFilter, statusFilter, page])
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE)
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
-  const start = (page - 1) * PER_PAGE + 1
-  const end = Math.min(page * PER_PAGE, filtered.length)
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
-  const handleEdit = (ip: IpAddress) => {
+  const handleEdit = (ip: IpApiItem) => {
     setEditData(ip)
     setFormOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    try {
+      await fetchApi(`/api/ip-address/${deleteTarget.id}`, { method: 'DELETE' })
+      setDeleteTarget(null)
+      setDeleteError('')
+      fetchData()
+    } catch {
+      setDeleteError('Gagal menghapus IP. Coba lagi.')
+    }
+  }
+
+  const handleDeleteAll = async () => {
+    try {
+      await fetchApi('/api/ip-address', { method: 'DELETE' })
+      setDeleteAllOpen(false)
+      setPage(1)
+      fetchData()
+    } catch {
+      setDeleteAllOpen(false)
+    }
   }
 
   const handleAdd = () => {
@@ -79,6 +116,7 @@ export default function IpAddressPage() {
         statusFilter={statusFilter}
         onStatusChange={(v) => { setStatusFilter(v ?? ''); setPage(1) }}
         onAdd={handleAdd}
+        onDeleteAll={() => setDeleteAllOpen(true)}
       />
 
       <div className="rounded-xl border bg-white shadow-xs">
@@ -98,32 +136,42 @@ export default function IpAddressPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginated.map((ip, idx) => (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={10} className="py-12 text-center text-muted-foreground">
+                  Memuat data...
+                </TableCell>
+              </TableRow>
+            ) : data?.data.map((ip, idx) => (
               <TableRow key={ip.id} className="even:bg-muted/20">
                 <TableCell className="text-center text-muted-foreground">
                   {(page - 1) * PER_PAGE + idx + 1}
                 </TableCell>
                 <TableCell className="font-mono text-xs">{ip.ipAddress}</TableCell>
                 <TableCell className="font-medium">{ip.hostname}</TableCell>
-                <TableCell>{ip.lantai}</TableCell>
-                <TableCell>{ip.departemen}</TableCell>
+                <TableCell>{ip.lantai.nama}</TableCell>
+                <TableCell>{ip.departemen.nama}</TableCell>
                 <TableCell>{ip.tipe}</TableCell>
                 <TableCell>{ip.pic}</TableCell>
                 <TableCell><StatusBadge status={ip.status} /></TableCell>
-                <TableCell className="text-muted-foreground">{ip.diperbarui}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {new Date(ip.updatedAt).toLocaleDateString('id-ID', {
+                    day: 'numeric', month: 'short', year: 'numeric',
+                  })}
+                </TableCell>
                 <TableCell>
                   <div className="flex justify-center gap-1">
                     <Button variant="ghost" size="icon-xs" onClick={() => handleEdit(ip)}>
                       <Pencil className="size-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon-xs" className="text-destructive hover:text-destructive">
+                    <Button variant="ghost" size="icon-xs" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(ip)}>
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>
                 </TableCell>
               </TableRow>
             ))}
-            {paginated.length === 0 && (
+            {!loading && data?.data.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10} className="py-12 text-center text-muted-foreground">
                   Tidak ada data ditemukan
@@ -136,8 +184,10 @@ export default function IpAddressPage() {
 
       <div className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 text-sm shadow-xs">
         <p className="text-muted-foreground">
-          Menampilkan <span className="font-medium text-foreground">{start}-{end}</span> dari{' '}
-          <span className="font-medium text-foreground">{filtered.length}</span> data
+          Menampilkan <span className="font-medium text-foreground">
+            {data ? (page - 1) * PER_PAGE + 1 : 0}-{data ? Math.min(page * PER_PAGE, data.total) : 0}
+          </span> dari{' '}
+          <span className="font-medium text-foreground">{data?.total ?? 0}</span> data
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -150,6 +200,7 @@ export default function IpAddressPage() {
           </Button>
           <div className="flex items-center gap-1 px-2">
             {(() => {
+              const totalPages = data?.totalPages ?? 1
               const pages: number[] = []
               const startPage = Math.max(1, Math.min(page - 2, totalPages - 4))
               const endPage = Math.min(totalPages, startPage + 4)
@@ -178,7 +229,7 @@ export default function IpAddressPage() {
           <Button
             variant="outline"
             size="sm"
-            disabled={page >= totalPages}
+            disabled={data ? page >= data.totalPages : true}
             onClick={() => setPage(page + 1)}
           >
             Selanjutnya
@@ -186,7 +237,60 @@ export default function IpAddressPage() {
         </div>
       </div>
 
-      <IpForm open={formOpen} onOpenChange={setFormOpen} editData={editData} />
+      <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteError('') }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-destructive" />
+              Hapus IP Address
+            </DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus{' '}
+              <span className="font-semibold text-foreground">{deleteTarget?.ipAddress}</span>
+              {' '}({deleteTarget?.hostname})? Tindakan ini tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && (
+            <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+              {deleteError}
+            </p>
+          )}
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError('') }}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Hapus
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-destructive" />
+              Hapus Semua IP Address
+            </DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus{' '}
+              <span className="font-semibold text-foreground">seluruh {data?.total ?? 0} data</span>
+              {' '}IP Address? Tindakan ini tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDeleteAllOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteAll}>
+              Hapus Semua
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <IpForm open={formOpen} onOpenChange={setFormOpen} editData={editData} onSaved={fetchData} />
     </div>
   )
 }

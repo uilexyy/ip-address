@@ -23,7 +23,7 @@ interface BarData {
 interface PieData {
   name: string
   value: number
-  fill: string
+  fill?: string
 }
 
 const COLORS = [

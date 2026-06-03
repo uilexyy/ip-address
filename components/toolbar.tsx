@@ -1,6 +1,7 @@
 'use client'
 
-import { Search, Download, Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, Download, Plus, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { floors, departments } from '@/lib/constants'
+import { fetchApi } from '@/lib/api'
+import type { LantaiItem, DepartemenItem } from '@/lib/api'
 
 interface ToolbarProps {
   search: string
@@ -22,6 +24,7 @@ interface ToolbarProps {
   statusFilter: string
   onStatusChange: (v: string | null) => void
   onAdd: () => void
+  onDeleteAll: () => void
 }
 
 export function Toolbar({
@@ -34,7 +37,20 @@ export function Toolbar({
   statusFilter,
   onStatusChange,
   onAdd,
+  onDeleteAll,
 }: ToolbarProps) {
+  const [floors, setFloors] = useState<LantaiItem[]>([])
+  const [departments, setDepartments] = useState<DepartemenItem[]>([])
+
+  useEffect(() => {
+    fetchApi<LantaiItem[]>('/api/lantai').then(setFloors).catch(() => {})
+    fetchApi<DepartemenItem[]>('/api/departemen').then(setDepartments).catch(() => {})
+  }, [])
+
+  const filteredDepts = floorFilter && floorFilter !== 'all'
+    ? departments.filter((d) => d.lantaiId === floorFilter)
+    : departments
+
   return (
     <div className="flex flex-wrap items-center gap-3">
       <div className="relative min-w-[260px] flex-1">
@@ -54,7 +70,7 @@ export function Toolbar({
         <SelectContent>
           <SelectItem value="all">Semua Lantai</SelectItem>
           {floors.map((f) => (
-            <SelectItem key={f} value={f}>{f}</SelectItem>
+            <SelectItem key={f.id} value={f.id}>{f.nama}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -65,8 +81,8 @@ export function Toolbar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Semua Dept</SelectItem>
-          {departments.map((d) => (
-            <SelectItem key={d} value={d}>{d}</SelectItem>
+          {filteredDepts.map((d) => (
+            <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -86,6 +102,16 @@ export function Toolbar({
       <Button variant="outline" size="sm" className="h-9 gap-2">
         <Download className="size-4" />
         Export Excel
+      </Button>
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={onDeleteAll}
+      >
+        <Trash2 className="size-4" />
+        Hapus Semua
       </Button>
 
       <Button size="sm" className="h-9 gap-2 bg-blue-600 hover:bg-blue-700" onClick={onAdd}>

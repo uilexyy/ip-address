@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum IpStatus {
+  AKTIF
+  NONAKTIF
+  MAINTENANCE
+}
+
+model Lantai {
+  id        String   @id @default(cuid())
+  nama      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  departemens Departemen[]
+  ipAddresses IpAddress[]
+
+  @@map("lantai")
+}
+
+model Departemen {
+  id        String   @id @default(cuid())
+  nama      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  lantaiId String @map("lantai_id")
+  lantai   Lantai @relation(fields: [lantaiId], references: [id])
+
+  ipAddresses IpAddress[]
+
+  @@map("departemen")
+}
+
+model IpAddress {
+  id           String   @id @default(cuid())
+  ipAddress    String   @unique @map("ip_address")
+  hostname     String
+  macAddress   String?  @map("mac_address")
+  subDepartemen String? @map("sub_departemen")
+  tipe         String
+  pic          String   @default("")
+  status       IpStatus @default(AKTIF)
+  keterangan   String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  lantaiId    String     @map("lantai_id")
+  lantai      Lantai     @relation(fields: [lantaiId], references: [id])
+  departemenId String    @map("departemen_id")
+  departemen  Departemen @relation(fields: [departemenId], references: [id])
+
+  histories History[]
+
+  @@map("ip_address")
+}
+
+model History {
+  id        String   @id @default(cuid())
+  aksi      String
+  detail    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ipAddressId String @map("ip_address_id")
+  ipAddress   IpAddress @relation(fields: [ipAddressId], references: [id], onDelete: Cascade)
+
+  @@map("history")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  nama      String
+  role      String   @default("admin")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}

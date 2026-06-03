@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Printer, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -19,8 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/status-badge'
-import { floors, getFloorData } from '@/lib/constants'
-import type { IpAddress } from '@/lib/constants'
+import { fetchApi } from '@/lib/api'
+import type { FloorApiItem, IpApiItem } from '@/lib/api'
 
 const DEPT_COLORS: Record<string, string> = {
   IGD: 'bg-red-100 text-red-800 border-red-200',
@@ -41,13 +41,34 @@ const DEPT_COLORS: Record<string, string> = {
   Laundry: 'bg-stone-100 text-stone-800 border-stone-200',
 }
 
-const floorData = getFloorData()
-
 export default function PerLantaiPage() {
-  const [activeTab, setActiveTab] = useState('LT 1')
+  const [floors, setFloors] = useState<FloorApiItem[]>([])
+  const [activeTab, setActiveTab] = useState('')
+
+  useEffect(() => {
+    fetchApi<FloorApiItem[]>('/api/per-lantai')
+      .then((data) => {
+        setFloors(data)
+        if (data.length > 0 && !activeTab) setActiveTab(data[0].nama)
+      })
+      .catch(() => {})
+  }, [activeTab])
 
   const handlePrint = () => {
     window.print()
+  }
+
+  if (floors.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Per Lantai</h1>
+          <p className="text-sm text-muted-foreground">
+            Memuat data...
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -74,37 +95,38 @@ export default function PerLantaiPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           {floors.map((f) => (
-            <TabsTrigger key={f} value={f}>
-              {f}
+            <TabsTrigger key={f.id} value={f.nama}>
+              {f.nama}
             </TabsTrigger>
           ))}
         </TabsList>
 
         {floors.map((floor) => {
-          const deps = floorData[floor]
-          const totalDevices = Object.values(deps).reduce((sum, arr) => sum + arr.length, 0)
+          const totalDevices = floor.departemens.reduce(
+            (sum, d) => sum + d.ipAddresses.length, 0
+          )
 
           return (
-            <TabsContent key={floor} value={floor} className="space-y-4">
+            <TabsContent key={floor.id} value={floor.nama} className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Total {totalDevices} perangkat di {floor}
+                Total {totalDevices} perangkat di {floor.nama}
               </p>
 
               <Accordion multiple className="space-y-3">
-                {Object.entries(deps).map(([dept, devices]) => {
-                  const colorClass = DEPT_COLORS[dept] ?? 'bg-gray-100 text-gray-800 border-gray-200'
+                {floor.departemens.map((dept) => {
+                  const colorClass = DEPT_COLORS[dept.nama] ?? 'bg-gray-100 text-gray-800 border-gray-200'
 
                   return (
                     <AccordionItem
-                      key={dept}
-                      value={dept}
+                      key={dept.id}
+                      value={dept.id}
                       className="rounded-xl border bg-white overflow-hidden shadow-xs"
                     >
                       <AccordionTrigger className={`px-4 py-3 text-sm font-semibold ${colorClass}`}>
                         <span className="flex items-center gap-2">
-                          {dept}
+                          {dept.nama}
                           <span className="rounded-full bg-white/60 px-2 py-0.5 text-xs font-normal text-foreground">
-                            {devices.length}
+                            {dept.ipAddresses.length}
                           </span>
                         </span>
                       </AccordionTrigger>
@@ -121,7 +143,7 @@ export default function PerLantaiPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {devices.map((ip: IpAddress, idx: number) => (
+                            {dept.ipAddresses.map((ip: IpApiItem, idx: number) => (
                               <TableRow key={ip.id} className="even:bg-muted/20">
                                 <TableCell className="text-center text-muted-foreground">{idx + 1}</TableCell>
                                 <TableCell className="font-medium">{ip.hostname}</TableCell>
