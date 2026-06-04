@@ -287,12 +287,12 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
               </Label>
               <Select value={form.departemen} onValueChange={(v) => update('departemen', v)}>
                 <SelectTrigger disabled={departments.length === 0} className={cn(errors.departemen && 'border-destructive ring-destructive/20')}>
-                  <SelectValue placeholder={departments.length === 0 ? 'Tidak ada departemen' : 'Pilih departemen'} className="sr-only" />
+                  <SelectValue placeholder={departments.length === 0 ? 'Tidak ada departemen' : (filteredDepts.length === 0 ? 'Tidak cocok' : 'Pilih departemen')} className="sr-only" />
                   <span className="flex flex-1 text-left">
-                    {departments.length === 0 ? 'Tidak ada departemen' : (selectedDeptName || 'Pilih departemen')}
+                    {departments.length === 0 ? 'Tidak ada departemen' : (filteredDepts.length === 0 ? 'Tidak ada departemen di lantai ini' : (selectedDeptName || 'Pilih departemen'))}
                   </span>
                 </SelectTrigger>
-                {departments.length > 0 && (
+                {filteredDepts.length > 0 && (
                   <SelectContent>
                     {filteredDepts.map((d) => (
                       <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>
