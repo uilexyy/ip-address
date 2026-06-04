@@ -1,18 +1,12 @@
-import { Pool } from 'pg'
+import { PrismaNeon } from '@prisma/adapter-neon'
 import { PrismaClient } from '@/lib/generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-})
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    adapter: new PrismaPg(pool),
+    adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }),
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
