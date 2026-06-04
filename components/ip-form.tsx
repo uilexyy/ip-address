@@ -27,7 +27,7 @@ import { deviceTypes, isValidIp, isIpDuplicate } from '@/lib/constants'
 import { fetchApi } from '@/lib/api'
 import type { LantaiItem, DepartemenItem, IpApiItem } from '@/lib/api'
 import type { IpStatus } from '@/lib/constants'
-import { AlertCircle, Building2, Layers } from 'lucide-react'
+import { AlertCircle, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface IpFormProps {
@@ -257,21 +257,16 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
                 Lantai <span className="text-destructive">*</span>
               </Label>
               <Select value={form.lantai} onValueChange={(v) => setForm((prev) => ({ ...prev, lantai: v ?? '', departemen: '' }))}>
-                <SelectTrigger className={cn(errors.lantai && 'border-destructive ring-destructive/20')}>
-                  <SelectValue placeholder="Pilih lantai" />
+                <SelectTrigger disabled={floors.length === 0} className={cn(errors.lantai && 'border-destructive ring-destructive/20')}>
+                  <SelectValue placeholder={floors.length === 0 ? 'Tidak ada lantai' : 'Pilih lantai'} />
                 </SelectTrigger>
-                <SelectContent>
-                  {floors.length === 0 ? (
-                    <div className="flex items-center gap-2 px-2 py-4 text-xs text-muted-foreground">
-                      <Building2 className="size-4" />
-                      Belum ada lantai
-                    </div>
-                  ) : (
-                    floors.map((f) => (
+                {floors.length > 0 && (
+                  <SelectContent>
+                    {floors.map((f) => (
                       <SelectItem key={f.id} value={f.id}>{f.nama}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
+                    ))}
+                  </SelectContent>
+                )}
               </Select>
               {errors.lantai && (
                 <p className="flex items-center gap-1 text-xs text-destructive">
@@ -285,21 +280,16 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
                 Departemen <span className="text-destructive">*</span>
               </Label>
               <Select value={form.departemen} onValueChange={(v) => update('departemen', v)}>
-                <SelectTrigger className={cn(errors.departemen && 'border-destructive ring-destructive/20')}>
-                  <SelectValue placeholder="Pilih departemen" />
+                <SelectTrigger disabled={departments.length === 0} className={cn(errors.departemen && 'border-destructive ring-destructive/20')}>
+                  <SelectValue placeholder={departments.length === 0 ? 'Tidak ada departemen' : 'Pilih departemen'} />
                 </SelectTrigger>
-                <SelectContent>
-                  {departments.length === 0 ? (
-                    <div className="flex items-center gap-2 px-2 py-4 text-xs text-muted-foreground">
-                      <Layers className="size-4" />
-                      Belum ada departemen
-                    </div>
-                  ) : (
-                    filteredDepts.map((d) => (
+                {departments.length > 0 && (
+                  <SelectContent>
+                    {filteredDepts.map((d) => (
                       <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>
-                    ))
-                  )}
-                </SelectContent>
+                    ))}
+                  </SelectContent>
+                )}
               </Select>
               {errors.departemen && (
                 <p className="flex items-center gap-1 text-xs text-destructive">
