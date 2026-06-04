@@ -33,7 +33,7 @@ const menuItems = [
   { href: '/pengaturan', label: 'Pengaturan', icon: Settings },
 ]
 
-export function Sidebar() {
+export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; onMobileClose?: () => void }) {
   const pathname = usePathname()
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
@@ -67,7 +67,21 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 transition-colors duration-300">
+    <>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/20 md:hidden"
+          onClick={onMobileClose}
+        />
+      )}
+      <aside
+        className={cn(
+          'flex h-screen w-64 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 transition-all duration-300',
+          'fixed -translate-x-full z-50 md:static md:translate-x-0',
+          mobileOpen && 'translate-x-0'
+        )}
+      >
       <div className="flex items-center gap-3 border-b border-zinc-100 px-6 py-5 dark:border-zinc-800">
         <div className="flex size-9 items-center justify-center rounded-lg bg-blue-600 dark:bg-blue-500 text-white text-sm font-bold shadow-xs">
           IP
@@ -168,5 +182,6 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   )
 }

@@ -178,7 +178,7 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label className={cn(errors.ipAddress && 'text-destructive')}>
                 IP Address <span className="text-destructive">*</span>
@@ -222,7 +222,7 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>MAC Address</Label>
               <Input
@@ -254,7 +254,7 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label className={cn(errors.lantai && 'text-destructive')}>
                 Lantai <span className="text-destructive">*</span>
