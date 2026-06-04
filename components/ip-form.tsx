@@ -157,6 +157,9 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
   const update = (key: string, value: string | null) =>
     setForm((prev) => ({ ...prev, [key]: value ?? '' }))
 
+  const selectedFloorName = floors.find((f) => f.id === form.lantai)?.nama
+  const selectedDeptName = departments.find((d) => d.id === form.departemen)?.nama
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -258,7 +261,9 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
               </Label>
               <Select value={form.lantai} onValueChange={(v) => setForm((prev) => ({ ...prev, lantai: v ?? '', departemen: '' }))}>
                 <SelectTrigger disabled={floors.length === 0} className={cn(errors.lantai && 'border-destructive ring-destructive/20')}>
-                  <SelectValue placeholder={floors.length === 0 ? 'Tidak ada lantai' : 'Pilih lantai'} />
+                   <SelectValue placeholder={floors.length === 0 ? 'Tidak ada lantai' : 'Pilih lantai'}>
+                    {selectedFloorName}
+                  </SelectValue>
                 </SelectTrigger>
                 {floors.length > 0 && (
                   <SelectContent>
@@ -281,7 +286,9 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
               </Label>
               <Select value={form.departemen} onValueChange={(v) => update('departemen', v)}>
                 <SelectTrigger disabled={departments.length === 0} className={cn(errors.departemen && 'border-destructive ring-destructive/20')}>
-                  <SelectValue placeholder={departments.length === 0 ? 'Tidak ada departemen' : 'Pilih departemen'} />
+                   <SelectValue placeholder={departments.length === 0 ? 'Tidak ada departemen' : 'Pilih departemen'}>
+                    {selectedDeptName}
+                  </SelectValue>
                 </SelectTrigger>
                 {departments.length > 0 && (
                   <SelectContent>
