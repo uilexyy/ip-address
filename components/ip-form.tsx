@@ -27,7 +27,7 @@ import { deviceTypes, isValidIp, isIpDuplicate } from '@/lib/constants'
 import { fetchApi } from '@/lib/api'
 import type { LantaiItem, DepartemenItem, IpApiItem } from '@/lib/api'
 import type { IpStatus } from '@/lib/constants'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Building2, Layers } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface IpFormProps {
@@ -168,6 +168,13 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
         </DialogHeader>
 
         <div className="grid gap-5 py-4">
+          {floors.length === 0 && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200/60 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
+              <Building2 className="size-4 shrink-0" />
+              <span>Belum ada data Lantai. Tambah dulu di <strong>Master Data → Lantai</strong>.</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className={cn(errors.ipAddress && 'text-destructive')}>
@@ -254,9 +261,16 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
                   <SelectValue placeholder="Pilih lantai" />
                 </SelectTrigger>
                 <SelectContent>
-                  {floors.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>{f.nama}</SelectItem>
-                  ))}
+                  {floors.length === 0 ? (
+                    <div className="flex items-center gap-2 px-2 py-4 text-xs text-muted-foreground">
+                      <Building2 className="size-4" />
+                      Belum ada lantai
+                    </div>
+                  ) : (
+                    floors.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.nama}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.lantai && (
@@ -275,9 +289,16 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
                   <SelectValue placeholder="Pilih departemen" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredDepts.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>
-                  ))}
+                  {departments.length === 0 ? (
+                    <div className="flex items-center gap-2 px-2 py-4 text-xs text-muted-foreground">
+                      <Layers className="size-4" />
+                      Belum ada departemen
+                    </div>
+                  ) : (
+                    filteredDepts.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.nama}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               {errors.departemen && (
@@ -353,7 +374,7 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Batal
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit} disabled={saving}>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSubmit} disabled={saving || floors.length === 0}>
             {saving ? 'Menyimpan...' : editData ? 'Simpan Perubahan' : 'Tambah IP'}
           </Button>
         </div>
