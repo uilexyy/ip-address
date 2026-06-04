@@ -261,6 +261,7 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
               </Label>
               <Select value={form.lantai} onValueChange={(v) => setForm((prev) => ({ ...prev, lantai: v ?? '', departemen: '' }))}>
                 <SelectTrigger disabled={floors.length === 0} className={cn(errors.lantai && 'border-destructive ring-destructive/20')}>
+                  <SelectValue placeholder={floors.length === 0 ? 'Tidak ada lantai' : 'Pilih lantai'} className="sr-only" />
                   <span className="flex flex-1 text-left">
                     {floors.length === 0 ? 'Tidak ada lantai' : (selectedFloorName || 'Pilih lantai')}
                   </span>
@@ -286,6 +287,7 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
               </Label>
               <Select value={form.departemen} onValueChange={(v) => update('departemen', v)}>
                 <SelectTrigger disabled={departments.length === 0} className={cn(errors.departemen && 'border-destructive ring-destructive/20')}>
+                  <SelectValue placeholder={departments.length === 0 ? 'Tidak ada departemen' : 'Pilih departemen'} className="sr-only" />
                   <span className="flex flex-1 text-left">
                     {departments.length === 0 ? 'Tidak ada departemen' : (selectedDeptName || 'Pilih departemen')}
                   </span>

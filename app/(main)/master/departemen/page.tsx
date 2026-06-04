@@ -275,6 +275,7 @@ export default function MasterDepartemenPage() {
               </Label>
               <Select value={lantaiId} onValueChange={(v) => setLantaiId(v ?? '')}>
                 <SelectTrigger>
+                  <SelectValue placeholder="Pilih lantai" className="sr-only" />
                   <span className="flex flex-1 text-left">
                     {floors.find((f) => f.id === lantaiId)?.nama || 'Pilih lantai'}
                   </span>
