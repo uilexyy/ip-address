@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import {
   Home,
@@ -35,6 +36,7 @@ const menuItems = [
 
 export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; onMobileClose?: () => void }) {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   const childActive = useMemo(() =>
@@ -163,11 +165,15 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
       <div className="border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
-            AD
+            {session?.user?.nama?.charAt(0).toUpperCase() || 'U'}
           </div>
           <div className="flex-1 leading-tight min-w-0">
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">Admin RS</p>
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate">admin@rs.com</p>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+              {session?.user?.nama || 'User'}
+            </p>
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate">
+              {session?.user?.email || ''}
+            </p>
           </div>
           <button
             onClick={toggleTheme}
@@ -176,7 +182,11 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
           >
             {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </button>
-          <button className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 transition-colors">
+          <button
+            onClick={() => signOut({ redirectTo: '/login' })}
+            className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 transition-colors"
+            title="Keluar"
+          >
             <LogOut className="size-4" />
           </button>
         </div>

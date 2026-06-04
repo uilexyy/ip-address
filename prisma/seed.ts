@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import { PrismaClient } from '../lib/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { hash } from 'bcryptjs'
 import type { IpStatus } from '../lib/generated/prisma/enums'
 
 const prisma = new PrismaClient({
@@ -85,11 +86,13 @@ async function main() {
   }
   console.log('Created 150 IP addresses with history')
 
+  const hashedPassword = await hash('admin123', 12)
+
   await prisma.user.create({
     data: {
       username: 'admin',
       email: 'admin@rs.com',
-      password: 'admin123',
+      password: hashedPassword,
       nama: 'Admin RS',
       role: 'admin',
     },
