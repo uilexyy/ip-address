@@ -58,14 +58,13 @@ function DeviceNode({ ip }: { ip: IpApiItem }) {
     const rect = ref.current.getBoundingClientRect()
     const gap = 8
     const tooltipHeight = 180
-    const spaceAbove = rect.top - gap
     const spaceBelow = window.innerHeight - rect.bottom - gap
     const centerX = rect.left + rect.width / 2
 
-    if (spaceAbove >= tooltipHeight || spaceAbove >= spaceBelow) {
-      setTooltipPos({ top: rect.top - gap, left: centerX, arrow: 'up' })
-    } else {
+    if (spaceBelow >= tooltipHeight) {
       setTooltipPos({ top: rect.bottom + gap, left: centerX, arrow: 'down' })
+    } else {
+      setTooltipPos({ top: rect.top - gap, left: centerX, arrow: 'up' })
     }
   }
 
@@ -311,8 +310,8 @@ export default function PerLantaiPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="sticky top-0 z-10 -mx-6 px-6 pb-px bg-zinc-50 dark:bg-zinc-950">
-          <TabsList>
+        <div className="sticky top-0 z-10 py-2 bg-zinc-50 dark:bg-zinc-950">
+          <TabsList variant="line">
             {floors.map((f) => {
               const deviceCount = f.departemens.reduce((s, d) => s + d.ipAddresses.length, 0)
               return (

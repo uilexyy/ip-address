@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Pencil, Trash2, AlertTriangle } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Pencil, Trash2, AlertTriangle, LoaderCircle, AlertCircle, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -39,6 +39,7 @@ export default function IpAddressPage() {
   const [deleteError, setDeleteError] = useState('')
   const [data, setData] = useState<IpListResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -53,8 +54,10 @@ export default function IpAddressPage() {
     try {
       const res = await fetchApi<IpListResponse>(`/api/ip-address?${params}`)
       setData(res)
+      setError('')
     } catch {
       setData(null)
+      setError('Gagal memuat data. Periksa koneksi server.')
     } finally {
       setLoading(false)
     }
@@ -63,6 +66,17 @@ export default function IpAddressPage() {
   useEffect(() => {
     Promise.resolve().then(fetchData)
   }, [fetchData])
+
+  const totalPages = data?.totalPages ?? 1
+  const pageButtons = useMemo(() => {
+    const pages: number[] = []
+    const startPage = Math.max(1, Math.min(page - 2, totalPages - 4))
+    const endPage = Math.min(totalPages, startPage + 4)
+    for (let i = startPage; i <= endPage; i++) pages.push(i)
+    if (startPage > 1) pages.unshift(-1)
+    if (endPage < totalPages) pages.push(-1)
+    return pages
+  }, [page, totalPages])
 
   const handleEdit = (ip: IpApiItem) => {
     setEditData(ip)
@@ -138,8 +152,26 @@ export default function IpAddressPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={10} className="py-12 text-center text-muted-foreground">
-                  Memuat data...
+                <TableCell colSpan={10} className="py-20 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <LoaderCircle className="size-6 animate-spin" />
+                    <span>Memuat data...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={10} className="py-20 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="size-8 text-destructive" />
+                    <span className="text-destructive font-medium">{error}</span>
+                    <button
+                      className="text-sm text-blue-600 hover:underline cursor-pointer"
+                      onClick={() => Promise.resolve().then(fetchData)}
+                    >
+                      Coba lagi
+                    </button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : data?.data.map((ip, idx) => (
@@ -171,10 +203,14 @@ export default function IpAddressPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {!loading && data?.data.length === 0 && (
+            {!loading && !error && data?.data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="py-12 text-center text-muted-foreground">
-                  Tidak ada data ditemukan
+                <TableCell colSpan={10} className="py-20 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Network className="size-8 text-muted-foreground/50" />
+                    <span>Tidak ada data ditemukan</span>
+                    <span className="text-xs">Coba ubah filter atau tambah data baru</span>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
@@ -182,32 +218,27 @@ export default function IpAddressPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 px-4 py-3 text-sm shadow-xs transition-colors">
-        <p className="text-muted-foreground">
-          Menampilkan <span className="font-medium text-foreground">
-            {data ? (page - 1) * PER_PAGE + 1 : 0}-{data ? Math.min(page * PER_PAGE, data.total) : 0}
-          </span> dari{' '}
-          <span className="font-medium text-foreground">{data?.total ?? 0}</span> data
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-          >
-            Sebelumnya
-          </Button>
-          <div className="flex items-center gap-1 px-2">
-            {(() => {
-              const totalPages = data?.totalPages ?? 1
-              const pages: number[] = []
-              const startPage = Math.max(1, Math.min(page - 2, totalPages - 4))
-              const endPage = Math.min(totalPages, startPage + 4)
-              for (let i = startPage; i <= endPage; i++) pages.push(i)
-              if (startPage > 1) pages.unshift(-1)
-              if (endPage < totalPages) pages.push(-1)
-              return pages.map((p, i) =>
+      {data && !loading && !error && (
+        <div className="flex items-center justify-between rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 px-4 py-3 text-sm shadow-xs transition-colors">
+          <p className="text-muted-foreground">
+            Menampilkan{' '}
+            <span className="font-medium text-foreground">
+              {data.total === 0 ? 0 : (page - 1) * PER_PAGE + 1}-{Math.min(page * PER_PAGE, data.total)}
+            </span>{' '}
+            dari{' '}
+            <span className="font-medium text-foreground">{data.total}</span> data
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
+            >
+              Sebelumnya
+            </Button>
+            <div className="flex items-center gap-1 px-2">
+              {pageButtons.map((p, i) =>
                 p === -1 ? (
                   <span key={`ellipsis-${i}`} className="px-1 text-muted-foreground">
                     ...
@@ -215,27 +246,27 @@ export default function IpAddressPage() {
                 ) : (
                   <Button
                     key={p}
-                    variant={page === p ? "default" : "ghost"}
+                    variant={page === p ? 'default' : 'ghost'}
                     size="xs"
                     className="min-w-7"
                     onClick={() => setPage(p)}
                   >
                     {p}
                   </Button>
-                )
-              )
-            })()}
+                ),
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= (data?.totalPages ?? 1)}
+              onClick={() => setPage(page + 1)}
+            >
+              Selanjutnya
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={data ? page >= data.totalPages : true}
-            onClick={() => setPage(page + 1)}
-          >
-            Selanjutnya
-          </Button>
         </div>
-      </div>
+      )}
 
       <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteError('') }}>
         <DialogContent className="sm:max-w-md">
