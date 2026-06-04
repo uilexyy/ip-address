@@ -25,9 +25,9 @@ import type { HistoryListResponse } from '@/lib/api'
 const PER_PAGE = 20
 
 const AKSI_STYLE: Record<string, string> = {
-  CREATED: 'bg-green-50 text-green-700 border-green-200',
-  UPDATED: 'bg-blue-50 text-blue-700 border-blue-200',
-  DELETED: 'bg-red-50 text-red-700 border-red-200',
+  CREATED: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-400 dark:border-green-800/40',
+  UPDATED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800/40',
+  DELETED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800/40',
 }
 
 const AKSI_LABEL: Record<string, string> = {
@@ -37,7 +37,7 @@ const AKSI_LABEL: Record<string, string> = {
 }
 
 function AksiBadge({ aksi }: { aksi: string }) {
-  const style = AKSI_STYLE[aksi] ?? 'bg-gray-50 text-gray-700 border-gray-200'
+  const style = AKSI_STYLE[aksi] ?? 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950/40 dark:text-gray-400 dark:border-gray-800/40'
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${style}`}>
       {AKSI_LABEL[aksi] ?? aksi}
@@ -71,7 +71,7 @@ export default function HistoryPage() {
   }, [search, aksiFilter, page])
 
   useEffect(() => {
-    fetchData()
+    Promise.resolve().then(fetchData)
   }, [fetchData])
 
   return (
@@ -106,10 +106,10 @@ export default function HistoryPage() {
         </Select>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-xs">
+      <div className="rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 shadow-xs transition-colors">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
+            <TableRow className="bg-muted/40 dark:bg-zinc-800/40">
               <TableHead className="w-12 text-center">No</TableHead>
               <TableHead>Waktu</TableHead>
               <TableHead>Aksi</TableHead>
@@ -126,7 +126,7 @@ export default function HistoryPage() {
                 </TableCell>
               </TableRow>
             ) : data?.data.map((h, idx) => (
-              <TableRow key={h.id} className="even:bg-muted/20">
+              <TableRow key={h.id} className="even:bg-muted/20 dark:even:bg-zinc-800/20">
                 <TableCell className="text-center text-muted-foreground">
                   {(page - 1) * PER_PAGE + idx + 1}
                 </TableCell>
@@ -153,7 +153,7 @@ export default function HistoryPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 text-sm shadow-xs">
+      <div className="flex items-center justify-between rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 px-4 py-3 text-sm shadow-xs transition-colors">
         <p className="text-muted-foreground">
           Menampilkan <span className="font-medium text-foreground">
             {data && data.total > 0 ? (page - 1) * PER_PAGE + 1 : 0}-{data ? Math.min(page * PER_PAGE, data.total) : 0}

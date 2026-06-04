@@ -64,23 +64,24 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
-  // Sinkronkan isi form setiap dialog dibuka (komponen tetap ter-mount)
   useEffect(() => {
     if (!open) return
-    setForm(editData ? {
-      ipAddress: editData.ipAddress,
-      hostname: editData.hostname,
-      macAddress: editData.macAddress ?? '',
-      lantai: editData.lantaiId,
-      departemen: editData.departemenId,
-      subDepartemen: editData.subDepartemen ?? '',
-      tipe: editData.tipe,
-      pic: editData.pic,
-      status: editData.status,
-      keterangan: editData.keterangan ?? '',
-    } : emptyForm)
-    setErrors({})
-    setIpError(null)
+    Promise.resolve().then(() => {
+      setForm(editData ? {
+        ipAddress: editData.ipAddress,
+        hostname: editData.hostname,
+        macAddress: editData.macAddress ?? '',
+        lantai: editData.lantaiId,
+        departemen: editData.departemenId,
+        subDepartemen: editData.subDepartemen ?? '',
+        tipe: editData.tipe,
+        pic: editData.pic,
+        status: editData.status,
+        keterangan: editData.keterangan ?? '',
+      } : emptyForm)
+      setErrors({})
+      setIpError(null)
+    })
   }, [open, editData])
 
   const validate = async () => {

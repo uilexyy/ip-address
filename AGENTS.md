@@ -6,7 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Project: ip-address
 
-Minimal Next.js 16 App Router project (no custom code yet — just the `create-next-app` scaffold).
+Next.js 16 App Router project — Prisma (PostgreSQL), shadcn/ui, Base UI, Recharts, IP address management dashboard.
 
 ## Commands
 
@@ -33,3 +33,7 @@ Minimal Next.js 16 App Router project (no custom code yet — just the `create-n
 - Next.js 16.2.7 + React 19.2.4
 - TypeScript 5+, Tailwind CSS 4 (`@tailwindcss/postcss`)
 - Path alias `@/*` maps to project root
+- Prisma 7 (`@prisma/client`, `@prisma/adapter-pg`, `pg`) — PostgreSQL
+- shadcn/ui (`class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css`, `lucide-react`)
+- Base UI (`@base-ui/react`, `cmdk`)
+- Recharts for charts

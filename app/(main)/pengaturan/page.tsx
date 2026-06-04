@@ -128,7 +128,7 @@ export default function PengaturanPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-3">
             {summary.map((s) => (
-              <div key={s.label} className="rounded-lg border bg-muted/30 p-3 text-center">
+              <div key={s.label} className="rounded-lg border dark:border-zinc-800 bg-muted/30 dark:bg-zinc-800/30 p-3 text-center">
                 <s.icon className="mx-auto mb-1 size-4 text-muted-foreground" />
                 <p className="text-2xl font-semibold">{s.value}</p>
                 <p className="text-[11px] text-muted-foreground">{s.label}</p>
@@ -152,7 +152,7 @@ export default function PengaturanPage() {
           {RESET_TARGETS.map((target) => (
             <div
               key={target.endpoint}
-              className="flex items-center justify-between gap-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3"
+              className="flex items-center justify-between gap-4 rounded-lg border border-destructive/20 dark:border-destructive/30 bg-destructive/5 dark:bg-destructive/10 p-3"
             >
               <div className="flex items-start gap-3">
                 <Layers className="mt-0.5 size-4 shrink-0 text-destructive" />

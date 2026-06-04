@@ -61,7 +61,7 @@ export default function IpAddressPage() {
   }, [search, floorFilter, deptFilter, statusFilter, page])
 
   useEffect(() => {
-    fetchData()
+    Promise.resolve().then(fetchData)
   }, [fetchData])
 
   const handleEdit = (ip: IpApiItem) => {
@@ -119,10 +119,10 @@ export default function IpAddressPage() {
         onDeleteAll={() => setDeleteAllOpen(true)}
       />
 
-      <div className="rounded-xl border bg-white shadow-xs">
+      <div className="rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 shadow-xs transition-colors">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
+            <TableRow className="bg-muted/40 dark:bg-zinc-800/40">
               <TableHead className="w-12 text-center">No</TableHead>
               <TableHead>IP Address</TableHead>
               <TableHead>Hostname</TableHead>
@@ -143,7 +143,7 @@ export default function IpAddressPage() {
                 </TableCell>
               </TableRow>
             ) : data?.data.map((ip, idx) => (
-              <TableRow key={ip.id} className="even:bg-muted/20">
+              <TableRow key={ip.id} className="even:bg-muted/20 dark:even:bg-zinc-800/20">
                 <TableCell className="text-center text-muted-foreground">
                   {(page - 1) * PER_PAGE + idx + 1}
                 </TableCell>
@@ -182,7 +182,7 @@ export default function IpAddressPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border bg-white px-4 py-3 text-sm shadow-xs">
+      <div className="flex items-center justify-between rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 px-4 py-3 text-sm shadow-xs transition-colors">
         <p className="text-muted-foreground">
           Menampilkan <span className="font-medium text-foreground">
             {data ? (page - 1) * PER_PAGE + 1 : 0}-{data ? Math.min(page * PER_PAGE, data.total) : 0}

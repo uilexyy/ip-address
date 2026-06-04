@@ -20,12 +20,6 @@ export const deviceTypes = [
   'UPS', 'Access Point', 'CCTV', 'IP Phone', 'Tablet',
 ]
 
-export const picNames = [
-  'Dr. Andi Pratama', 'Siti Rahmawati', 'Budi Santoso', 'Dewi Lestari',
-  'Ahmad Fauzi', 'Rina Marlina', 'Hendra Gunawan', 'Maya Sari',
-  'Rudi Hermawan', 'Indah Permata', 'Agus Wijaya', 'Fitri Handayani',
-]
-
 export const isValidIp = (ip: string) =>
   /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(ip) &&
   ip.split('.').every((octet) => Number(octet) >= 0 && Number(octet) <= 255)

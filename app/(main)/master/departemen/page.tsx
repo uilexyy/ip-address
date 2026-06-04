@@ -61,7 +61,7 @@ export default function MasterDepartemenPage() {
   }, [])
 
   useEffect(() => {
-    fetchData()
+    Promise.resolve().then(fetchData)
     fetchApi<LantaiItem[]>('/api/lantai').then(setFloors).catch(() => {})
   }, [fetchData])
 
@@ -195,10 +195,10 @@ export default function MasterDepartemenPage() {
         </Select>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-xs">
+      <div className="rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 shadow-xs transition-colors">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/40">
+            <TableRow className="bg-muted/40 dark:bg-zinc-800/40">
               <TableHead className="w-12 text-center">No</TableHead>
               <TableHead>Nama Departemen</TableHead>
               <TableHead>Lantai</TableHead>
@@ -214,7 +214,7 @@ export default function MasterDepartemenPage() {
                 </TableCell>
               </TableRow>
             ) : filtered.map((dept, idx) => (
-              <TableRow key={dept.id} className="even:bg-muted/20">
+              <TableRow key={dept.id} className="even:bg-muted/20 dark:even:bg-zinc-800/20">
                 <TableCell className="text-center text-muted-foreground">{idx + 1}</TableCell>
                 <TableCell className="font-medium">{dept.nama}</TableCell>
                 <TableCell>{dept.lantai.nama}</TableCell>
@@ -288,7 +288,7 @@ export default function MasterDepartemenPage() {
               <p className="text-xs text-destructive">{formError}</p>
             )}
           </div>
-          <div className="flex justify-end gap-3 border-t pt-4">
+          <div className="flex justify-end gap-3 border-t dark:border-zinc-800 pt-4">
             <Button variant="outline" onClick={() => setFormOpen(false)}>
               Batal
             </Button>

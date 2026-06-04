@@ -99,7 +99,7 @@ export function Toolbar({
         </SelectContent>
       </Select>
 
-      <Button variant="outline" size="sm" className="h-9 gap-2">
+      <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => alert('Fitur Export Excel akan segera tersedia')}>
         <Download className="size-4" />
         Export Excel
       </Button>
