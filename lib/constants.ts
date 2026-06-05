@@ -18,7 +18,7 @@ export interface IpAddress {
 export const deviceTypes = [
   'Desktop PC', 'Laptop', 'Server', 'Printer', 'Scanner',
   'UPS', 'Access Point', 'CCTV', 'IP Phone', 'Tablet',
-]
+] as const
 
 export const isValidIp = (ip: string) =>
   /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(ip) &&

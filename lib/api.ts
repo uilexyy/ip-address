@@ -1,10 +1,33 @@
-export async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, options)
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(err.error || `HTTP ${res.status}`)
+export async function fetchApi<T>(url: string, options?: RequestInit & { timeout?: number }): Promise<T> {
+  const { timeout = 15000, ...fetchOptions } = options ?? {}
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+  const signal = options?.signal
+    ? anySignal([options.signal, controller.signal])
+    : controller.signal
+
+  try {
+    const res = await fetch(url, { ...fetchOptions, signal })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Request failed' }))
+      throw new Error(err.error || `HTTP ${res.status}`)
+    }
+    return res.json()
+  } finally {
+    clearTimeout(timeoutId)
   }
-  return res.json()
+}
+
+function anySignal(signals: AbortSignal[]): AbortSignal {
+  const controller = new AbortController()
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort(signal.reason)
+      return controller.signal
+    }
+    signal.addEventListener("abort", () => controller.abort(signal.reason), { once: true })
+  }
+  return controller.signal
 }
 
 export interface IpListResponse {
@@ -39,6 +62,8 @@ export interface HistoryApiItem {
   createdAt: string
   ipAddressId: string
   ipAddress: { id: string; ipAddress: string; hostname: string }
+  userId: string | null
+  user: { id: string; nama: string } | null
 }
 
 export interface HistoryListResponse {

@@ -96,13 +96,14 @@ export default function HistoryPage() {
               <TableHead>Aksi</TableHead>
               <TableHead>IP Address</TableHead>
               <TableHead>Hostname</TableHead>
+              <TableHead>User</TableHead>
               <TableHead>Detail</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
                     <LoaderCircle className="size-5 animate-spin" />
                     Memuat data...
@@ -111,7 +112,7 @@ export default function HistoryPage() {
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
+                <TableCell colSpan={7} className="py-12 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <AlertCircle className="size-8 text-destructive" />
                     <span className="text-destructive font-medium">Gagal memuat riwayat aktivitas.</span>
@@ -132,12 +133,13 @@ export default function HistoryPage() {
                 <TableCell><AksiBadge aksi={h.aksi} /></TableCell>
                 <TableCell className="font-mono text-xs">{h.ipAddress.ipAddress}</TableCell>
                 <TableCell className="font-medium">{h.ipAddress.hostname}</TableCell>
+                <TableCell className="text-muted-foreground">{h.user?.nama ?? '-'}</TableCell>
                 <TableCell className="text-muted-foreground">{h.detail ?? '-'}</TableCell>
               </TableRow>
             ))}
             {!isLoading && !error && data?.data.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
                   Belum ada riwayat aktivitas
                 </TableCell>
               </TableRow>

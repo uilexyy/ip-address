@@ -7,7 +7,7 @@ const DEVICE_TYPES = [
 ]
 
 export async function GET() {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   return NextResponse.json(DEVICE_TYPES)
 }

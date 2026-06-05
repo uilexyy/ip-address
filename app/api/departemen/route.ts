@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth-utils'
 
 export async function GET() {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const data = await prisma.departemen.findMany({
     include: { lantai: true, _count: { select: { ipAddresses: true } } },
     orderBy: { nama: 'asc' },
@@ -13,8 +13,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const body = await request.json()
   const nama = (body.nama || '').trim()
   const lantaiId = body.lantaiId || ''
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const blocking = await prisma.departemen.count({
     where: { ipAddresses: { some: {} } },
   })

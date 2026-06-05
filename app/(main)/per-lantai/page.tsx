@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { registerTooltipHider, unregisterTooltipHider } from '@/lib/scroll-tooltip'
-import { infoToast } from '@/lib/use-toast'
+import { exportPerLantai } from '@/lib/export'
+import { successToast, errorToast } from '@/lib/use-toast'
 import { Printer, Download, Monitor, Wifi, Server, Printer as PrinterIcon, Phone, Tablet, Camera, Shield, Radio, ScanLine, LoaderCircle, AlertCircle, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -266,7 +267,7 @@ export default function PerLantaiPage() {
             <Printer className="size-4" />
             Print
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => infoToast('Fitur Export akan segera tersedia')}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => { exportPerLantai().then(() => successToast('Data berhasil diexport')).catch(() => errorToast('Gagal export data')) }}>
             <Download className="size-4" />
             Export
           </Button>

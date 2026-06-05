@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth-utils'
 
 export async function GET() {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const floors = await prisma.lantai.findMany({
     include: {
       departemens: {

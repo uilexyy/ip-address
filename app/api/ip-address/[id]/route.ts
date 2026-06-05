@@ -6,8 +6,8 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const { id } = await params
   const ip = await prisma.ipAddress.findUnique({
     where: { id },
@@ -21,8 +21,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const { id } = await params
   const body = await request.json()
   const { ipAddress, hostname, macAddress, lantaiId, departemenId, subDepartemen, tipe, pic, status, keterangan } = body
@@ -49,7 +49,7 @@ export async function PUT(
       status,
       keterangan: keterangan || null,
       histories: {
-        create: { aksi: 'UPDATED', detail: `IP ${ipAddress} diperbarui` },
+        create: { aksi: 'UPDATED', detail: `IP ${ipAddress} diperbarui`, userId },
       },
     },
     include: { lantai: true, departemen: true },
@@ -62,8 +62,8 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const { id } = await params
   await prisma.ipAddress.delete({ where: { id } })
   return NextResponse.json({ success: true })

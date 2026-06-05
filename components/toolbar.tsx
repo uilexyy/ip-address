@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useLantaiList, useDepartemenList } from '@/lib/hooks'
-import { infoToast } from '@/lib/use-toast'
+import { exportIpList } from '@/lib/export'
+import { successToast, errorToast } from '@/lib/use-toast'
 
 interface ToolbarProps {
   search: string
@@ -93,7 +94,7 @@ export function Toolbar({
         </SelectContent>
       </Select>
 
-      <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => infoToast('Fitur Export Excel akan segera tersedia')}>
+      <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => { exportIpList().then(() => successToast('Data berhasil diexport')).catch(() => errorToast('Gagal export data')) }}>
         <Download className="size-4" />
         Export Excel
       </Button>

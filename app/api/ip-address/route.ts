@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const { searchParams } = request.nextUrl
   const search = searchParams.get('search') || ''
   const lantai = searchParams.get('lantai') || ''
@@ -40,15 +40,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE() {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   await prisma.ipAddress.deleteMany()
   return NextResponse.json({ success: true })
 }
 
 export async function POST(request: NextRequest) {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const body = await request.json()
   const { ipAddress, hostname, macAddress, lantaiId, departemenId, subDepartemen, tipe, pic, status, keterangan } = body
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       status: status || 'AKTIF',
       keterangan: keterangan || null,
       histories: {
-        create: { aksi: 'CREATED', detail: `IP ${ipAddress} ditambahkan` },
+        create: { aksi: 'CREATED', detail: `IP ${ipAddress} ditambahkan`, userId },
       },
     },
     include: { lantai: true, departemen: true },

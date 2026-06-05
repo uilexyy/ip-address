@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
-  const authError = await requireAuth()
-  if (authError) return authError
+  const userId = await requireAuth()
+  if (userId instanceof NextResponse) return userId
   const { searchParams } = request.nextUrl
   const search = searchParams.get('search') || ''
   const aksi = searchParams.get('aksi') || ''
@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         ipAddress: { select: { id: true, ipAddress: true, hostname: true } },
+        user: { select: { id: true, nama: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,

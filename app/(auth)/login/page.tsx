@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { LogIn, Eye, EyeOff, Hospital } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -63,7 +65,7 @@ export default function LoginPage() {
               >
                 Username
               </label>
-              <input
+              <Input
                 id="username"
                 type="text"
                 value={username}
@@ -71,7 +73,6 @@ export default function LoginPage() {
                 placeholder="Masukkan username"
                 required
                 autoFocus
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder-zinc-400 outline-hidden transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-blue-400"
               />
             </div>
 
@@ -83,14 +84,14 @@ export default function LoginPage() {
                 Password
               </label>
               <div className="relative">
-                <input
+                <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password"
                   required
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 pr-10 text-sm text-zinc-900 placeholder-zinc-400 outline-hidden transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-blue-400"
+                  className="pr-10"
                 />
                 <button
                   type="button"
@@ -113,10 +114,10 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98] disabled:opacity-60 disabled:active:scale-100"
+              className="w-full gap-2"
             >
               {loading ? (
                 <div className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -124,7 +125,7 @@ export default function LoginPage() {
                 <LogIn className="size-4" />
               )}
               {loading ? 'Memproses...' : 'Masuk'}
-            </button>
+            </Button>
           </form>
         </div>
 
