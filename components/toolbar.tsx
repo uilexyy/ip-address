@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { fetchApi } from '@/lib/api'
 import type { LantaiItem, DepartemenItem } from '@/lib/api'
+import { infoToast } from '@/lib/use-toast'
 
 interface ToolbarProps {
   search: string
@@ -99,7 +100,7 @@ export function Toolbar({
         </SelectContent>
       </Select>
 
-      <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => alert('Fitur Export Excel akan segera tersedia')}>
+      <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => infoToast('Fitur Export Excel akan segera tersedia')}>
         <Download className="size-4" />
         Export Excel
       </Button>

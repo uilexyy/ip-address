@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Pencil, Trash2, AlertTriangle, Plus, Search } from 'lucide-react'
+import { Pencil, Trash2, Plus, Search, AlertCircle, LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,11 +29,14 @@ import {
 } from '@/components/ui/select'
 import { fetchApi } from '@/lib/api'
 import type { DepartemenMasterItem, LantaiItem } from '@/lib/api'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { successToast } from '@/lib/use-toast'
 
 export default function MasterDepartemenPage() {
   const [data, setData] = useState<DepartemenMasterItem[]>([])
   const [floors, setFloors] = useState<LantaiItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [floorFilter, setFloorFilter] = useState('all')
 
@@ -50,11 +53,17 @@ export default function MasterDepartemenPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true)
+    setError('')
     try {
-      const res = await fetchApi<DepartemenMasterItem[]>('/api/departemen')
-      setData(res)
+      const [deptRes, floorRes] = await Promise.all([
+        fetchApi<DepartemenMasterItem[]>('/api/departemen'),
+        fetchApi<LantaiItem[]>('/api/lantai'),
+      ])
+      setData(deptRes)
+      setFloors(floorRes)
     } catch {
       setData([])
+      setError('Gagal memuat data departemen.')
     } finally {
       setLoading(false)
     }
@@ -62,7 +71,6 @@ export default function MasterDepartemenPage() {
 
   useEffect(() => {
     Promise.resolve().then(fetchData)
-    fetchApi<LantaiItem[]>('/api/lantai').then(setFloors).catch(() => {})
   }, [fetchData])
 
   const filtered = data.filter((d) => {
@@ -114,6 +122,7 @@ export default function MasterDepartemenPage() {
         })
       }
       setFormOpen(false)
+      successToast(editData ? `Departemen ${trimmed} berhasil diperbarui` : `Departemen ${trimmed} berhasil ditambahkan`)
       fetchData()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Gagal menyimpan. Coba lagi.')
@@ -128,6 +137,7 @@ export default function MasterDepartemenPage() {
       await fetchApi(`/api/departemen/${deleteTarget.id}`, { method: 'DELETE' })
       setDeleteTarget(null)
       setDeleteError('')
+      successToast(`Departemen ${deleteTarget.nama} berhasil dihapus`)
       fetchData()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus. Coba lagi.')
@@ -139,6 +149,7 @@ export default function MasterDepartemenPage() {
       await fetchApi('/api/departemen', { method: 'DELETE' })
       setDeleteAllOpen(false)
       setDeleteError('')
+      successToast('Semua departemen berhasil dihapus')
       fetchData()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus semua. Coba lagi.')
@@ -210,7 +221,25 @@ export default function MasterDepartemenPage() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                  Memuat data...
+                  <div className="flex items-center justify-center gap-2">
+                    <LoaderCircle className="size-5 animate-spin" />
+                    Memuat data...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-12 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="size-8 text-destructive" />
+                    <span className="text-destructive font-medium">{error}</span>
+                    <button
+                      className="text-sm text-blue-600 hover:underline cursor-pointer"
+                      onClick={() => fetchData()}
+                    >
+                      Coba lagi
+                    </button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : filtered.map((dept, idx) => (
@@ -302,65 +331,24 @@ export default function MasterDepartemenPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hapus satu */}
-      <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteError('') }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-destructive" />
-              Hapus Departemen
-            </DialogTitle>
-            <DialogDescription>
-              Apakah Anda yakin ingin menghapus{' '}
-              <span className="font-semibold text-foreground">{deleteTarget?.nama}</span>?
-              Tindakan ini tidak dapat dibatalkan.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && (
-            <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
-              {deleteError}
-            </p>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError('') }}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Hapus
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={() => { setDeleteTarget(null); setDeleteError('') }}
+        title="Hapus Departemen"
+        description={`Apakah Anda yakin ingin menghapus ${deleteTarget?.nama}? Tindakan ini tidak dapat dibatalkan.`}
+        error={deleteError}
+        onConfirm={handleDelete}
+      />
 
-      {/* Hapus semua */}
-      <Dialog open={deleteAllOpen} onOpenChange={(o) => { setDeleteAllOpen(o); if (!o) setDeleteError('') }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-destructive" />
-              Hapus Semua Departemen
-            </DialogTitle>
-            <DialogDescription>
-              Apakah Anda yakin ingin menghapus{' '}
-              <span className="font-semibold text-foreground">seluruh {data.length} departemen</span>?
-              Tindakan ini tidak dapat dibatalkan.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && (
-            <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
-              {deleteError}
-            </p>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setDeleteAllOpen(false); setDeleteError('') }}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteAll}>
-              Hapus Semua
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={deleteAllOpen}
+        onOpenChange={(o) => { setDeleteAllOpen(o); if (!o) setDeleteError('') }}
+        title="Hapus Semua Departemen"
+        description={`Apakah Anda yakin ingin menghapus seluruh ${data.length} departemen? Tindakan ini tidak dapat dibatalkan.`}
+        error={deleteError}
+        onConfirm={handleDeleteAll}
+        confirmText="Hapus Semua"
+      />
     </div>
   )
 }

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/auth-utils'
 
 export async function GET() {
+  const authError = await requireAuth()
+  if (authError) return authError
   const data = await prisma.lantai.findMany({
     orderBy: { nama: 'asc' },
     include: { _count: { select: { departemens: true, ipAddresses: true } } },
@@ -10,6 +13,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await requireAuth()
+  if (authError) return authError
   const body = await request.json()
   const nama = (body.nama || '').trim()
 
@@ -27,6 +32,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
+  const authError = await requireAuth()
+  if (authError) return authError
   const blocking = await prisma.lantai.count({
     where: {
       OR: [{ departemens: { some: {} } }, { ipAddresses: { some: {} } }],

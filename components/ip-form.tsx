@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,8 +25,9 @@ import {
 } from '@/components/ui/radio-group'
 import { deviceTypes, isValidIp, isIpDuplicate } from '@/lib/constants'
 import { fetchApi } from '@/lib/api'
-import type { LantaiItem, DepartemenItem, IpApiItem } from '@/lib/api'
+import { successToast } from '@/lib/use-toast'
 import type { IpStatus } from '@/lib/constants'
+import type { LantaiItem, DepartemenItem, IpApiItem } from '@/lib/api'
 import { AlertCircle, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -37,7 +38,20 @@ interface IpFormProps {
   onSaved?: () => void
 }
 
-const emptyForm = {
+interface FormState {
+  ipAddress: string
+  hostname: string
+  macAddress: string
+  lantai: string
+  departemen: string
+  subDepartemen: string
+  tipe: string
+  pic: string
+  status: IpStatus
+  keterangan: string
+}
+
+const emptyForm: FormState = {
   ipAddress: '',
   hostname: '',
   macAddress: '',
@@ -46,7 +60,7 @@ const emptyForm = {
   subDepartemen: '',
   tipe: '',
   pic: '',
-  status: 'AKTIF' as IpStatus,
+  status: 'AKTIF',
   keterangan: '',
 }
 
@@ -100,13 +114,18 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleIpChange = async (value: string) => {
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleIpChange = (value: string) => {
     setForm({ ...form, ipAddress: value })
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     if (value && !isValidIp(value)) {
       setIpError('Format: xxx.xxx.xxx.xxx')
     } else if (value && !editData) {
-      const duplicate = await isIpDuplicate(value)
-      setIpError(duplicate ? 'IP sudah terdaftar' : null)
+      debounceRef.current = setTimeout(async () => {
+        const duplicate = await isIpDuplicate(value)
+        setIpError(duplicate ? 'IP sudah terdaftar' : null)
+      }, 500)
     } else {
       setIpError(null)
     }
@@ -145,6 +164,7 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
           body: JSON.stringify(payload),
         })
       }
+      successToast(editData ? `IP ${form.ipAddress} berhasil diperbarui` : `IP ${form.ipAddress} berhasil ditambahkan`)
       onSaved?.()
       onOpenChange(false)
     } catch (err) {
@@ -154,7 +174,7 @@ export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
     }
   }
 
-  const update = (key: string, value: string | null) =>
+  const update = <K extends keyof FormState>(key: K, value: FormState[K] | null) =>
     setForm((prev) => ({ ...prev, [key]: value ?? '' }))
 
   const selectedFloorName = floors.find((f) => f.id === form.lantai)?.nama

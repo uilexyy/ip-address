@@ -10,16 +10,11 @@ import {
   CardDescription,
   CardContent,
 } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { fetchApi } from '@/lib/api'
 import type { DashboardStats } from '@/lib/api'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { successToast } from '@/lib/use-toast'
 
 interface ResetTarget {
   label: string
@@ -66,6 +61,7 @@ export default function PengaturanPage() {
       await fetchApi(resetTarget.endpoint, { method: 'DELETE' })
       setResetTarget(null)
       setResetError('')
+      successToast(`${resetTarget.label} berhasil dilakukan`)
       fetchStats()
     } catch (err) {
       setResetError(err instanceof Error ? err.message : 'Gagal menghapus. Coba lagi.')
@@ -174,32 +170,15 @@ export default function PengaturanPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!resetTarget} onOpenChange={(o) => { if (!o) { setResetTarget(null); setResetError('') } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-destructive" />
-              {resetTarget?.label}
-            </DialogTitle>
-            <DialogDescription>
-              {resetTarget?.description} Tindakan ini tidak dapat dibatalkan.
-            </DialogDescription>
-          </DialogHeader>
-          {resetError && (
-            <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
-              {resetError}
-            </p>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setResetTarget(null); setResetError('') }} disabled={resetting}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleReset} disabled={resetting}>
-              {resetting ? 'Menghapus...' : 'Hapus'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={!!resetTarget}
+        onOpenChange={(o) => { if (!o) { setResetTarget(null); setResetError('') } }}
+        title={resetTarget?.label ?? ''}
+        description={`${resetTarget?.description} Tindakan ini tidak dapat dibatalkan.`}
+        error={resetError}
+        loading={resetting}
+        onConfirm={handleReset}
+      />
     </div>
   )
 }

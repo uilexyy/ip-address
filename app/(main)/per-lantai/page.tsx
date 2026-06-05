@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { registerTooltipHider, unregisterTooltipHider } from '@/lib/scroll-tooltip'
+import { infoToast } from '@/lib/use-toast'
 import { Printer, Download, Monitor, Wifi, Server, Printer as PrinterIcon, Phone, Tablet, Camera, Shield, Radio, ScanLine, LoaderCircle, AlertCircle, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -72,9 +74,8 @@ function DeviceNode({ ip }: { ip: IpApiItem }) {
 
   useEffect(() => {
     if (!tooltipPos) return
-    const onScroll = () => hide()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    registerTooltipHider(hide)
+    return () => unregisterTooltipHider(hide)
   }, [tooltipPos])
 
   const tooltipContent = (
@@ -265,7 +266,7 @@ export default function PerLantaiPage() {
             <Printer className="size-4" />
             Print
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => alert('Fitur Export akan segera tersedia')}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => infoToast('Fitur Export akan segera tersedia')}>
             <Download className="size-4" />
             Export
           </Button>

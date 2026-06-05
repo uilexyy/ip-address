@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Search } from 'lucide-react'
+import { Search, AlertCircle, LoaderCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -51,9 +51,11 @@ export default function HistoryPage() {
   const [page, setPage] = useState(1)
   const [data, setData] = useState<HistoryListResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
+    setError('')
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (aksiFilter !== 'all') params.set('aksi', aksiFilter)
@@ -65,6 +67,7 @@ export default function HistoryPage() {
       setData(res)
     } catch {
       setData(null)
+      setError('Gagal memuat riwayat aktivitas.')
     } finally {
       setLoading(false)
     }
@@ -122,7 +125,25 @@ export default function HistoryPage() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
-                  Memuat data...
+                  <div className="flex items-center justify-center gap-2">
+                    <LoaderCircle className="size-5 animate-spin" />
+                    Memuat data...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-12 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="size-8 text-destructive" />
+                    <span className="text-destructive font-medium">{error}</span>
+                    <button
+                      className="text-sm text-blue-600 hover:underline cursor-pointer"
+                      onClick={() => fetchData()}
+                    >
+                      Coba lagi
+                    </button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : data?.data.map((h, idx) => (

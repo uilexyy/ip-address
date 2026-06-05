@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Pencil, Trash2, AlertTriangle, LoaderCircle, AlertCircle, Network } from 'lucide-react'
+import { Pencil, Trash2, LoaderCircle, AlertCircle, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -11,18 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
 import { StatusBadge } from '@/components/status-badge'
 import { Toolbar } from '@/components/toolbar'
 import { IpForm } from '@/components/ip-form'
 import { fetchApi } from '@/lib/api'
 import type { IpListResponse, IpApiItem } from '@/lib/api'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { successToast } from '@/lib/use-toast'
 
 const PER_PAGE = 20
 
@@ -89,6 +84,7 @@ export default function IpAddressPage() {
       await fetchApi(`/api/ip-address/${deleteTarget.id}`, { method: 'DELETE' })
       setDeleteTarget(null)
       setDeleteError('')
+      successToast(`IP ${deleteTarget.ipAddress} berhasil dihapus`)
       fetchData()
     } catch {
       setDeleteError('Gagal menghapus IP. Coba lagi.')
@@ -100,6 +96,7 @@ export default function IpAddressPage() {
       await fetchApi('/api/ip-address', { method: 'DELETE' })
       setDeleteAllOpen(false)
       setPage(1)
+      successToast('Semua IP Address berhasil dihapus')
       fetchData()
     } catch {
       setDeleteAllOpen(false)
@@ -268,58 +265,23 @@ export default function IpAddressPage() {
         </div>
       )}
 
-      <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteError('') }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-destructive" />
-              Hapus IP Address
-            </DialogTitle>
-            <DialogDescription>
-              Apakah Anda yakin ingin menghapus{' '}
-              <span className="font-semibold text-foreground">{deleteTarget?.ipAddress}</span>
-              {' '}({deleteTarget?.hostname})? Tindakan ini tidak dapat dibatalkan.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && (
-            <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
-              {deleteError}
-            </p>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError('') }}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Hapus
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={() => { setDeleteTarget(null); setDeleteError('') }}
+        title="Hapus IP Address"
+        description={`Apakah Anda yakin ingin menghapus ${deleteTarget?.ipAddress} (${deleteTarget?.hostname})? Tindakan ini tidak dapat dibatalkan.`}
+        error={deleteError}
+        onConfirm={handleDelete}
+      />
 
-      <Dialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-destructive" />
-              Hapus Semua IP Address
-            </DialogTitle>
-            <DialogDescription>
-              Apakah Anda yakin ingin menghapus{' '}
-              <span className="font-semibold text-foreground">seluruh {data?.total ?? 0} data</span>
-              {' '}IP Address? Tindakan ini tidak dapat dibatalkan.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setDeleteAllOpen(false)}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteAll}>
-              Hapus Semua
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={deleteAllOpen}
+        onOpenChange={setDeleteAllOpen}
+        title="Hapus Semua IP Address"
+        description={`Apakah Anda yakin ingin menghapus seluruh ${data?.total ?? 0} data IP Address? Tindakan ini tidak dapat dibatalkan.`}
+        onConfirm={handleDeleteAll}
+        confirmText="Hapus Semua"
+      />
 
       <IpForm open={formOpen} onOpenChange={setFormOpen} editData={editData} onSaved={fetchData} />
     </div>

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { requireAuth } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
+  const authError = await requireAuth()
+  if (authError) return authError
   const { searchParams } = request.nextUrl
   const search = searchParams.get('search') || ''
   const lantai = searchParams.get('lantai') || ''
@@ -37,11 +40,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE() {
+  const authError = await requireAuth()
+  if (authError) return authError
   await prisma.ipAddress.deleteMany()
   return NextResponse.json({ success: true })
 }
 
 export async function POST(request: NextRequest) {
+  const authError = await requireAuth()
+  if (authError) return authError
   const body = await request.json()
   const { ipAddress, hostname, macAddress, lantaiId, departemenId, subDepartemen, tipe, pic, status, keterangan } = body
 

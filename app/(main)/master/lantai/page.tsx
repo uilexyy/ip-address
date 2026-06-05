@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Pencil, Trash2, AlertTriangle, Plus, Search } from 'lucide-react'
+import { Pencil, Trash2, Plus, Search, AlertCircle, LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,10 +22,13 @@ import {
 } from '@/components/ui/dialog'
 import { fetchApi } from '@/lib/api'
 import type { LantaiMasterItem } from '@/lib/api'
+import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
+import { successToast } from '@/lib/use-toast'
 
 export default function MasterLantaiPage() {
   const [data, setData] = useState<LantaiMasterItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [search, setSearch] = useState('')
 
   const [formOpen, setFormOpen] = useState(false)
@@ -40,11 +43,13 @@ export default function MasterLantaiPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true)
+    setError('')
     try {
       const res = await fetchApi<LantaiMasterItem[]>('/api/lantai')
       setData(res)
     } catch {
       setData([])
+      setError('Gagal memuat data lantai.')
     } finally {
       setLoading(false)
     }
@@ -94,6 +99,7 @@ export default function MasterLantaiPage() {
         })
       }
       setFormOpen(false)
+      successToast(editData ? `Lantai ${trimmed} berhasil diperbarui` : `Lantai ${trimmed} berhasil ditambahkan`)
       fetchData()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Gagal menyimpan. Coba lagi.')
@@ -108,6 +114,7 @@ export default function MasterLantaiPage() {
       await fetchApi(`/api/lantai/${deleteTarget.id}`, { method: 'DELETE' })
       setDeleteTarget(null)
       setDeleteError('')
+      successToast(`Lantai ${deleteTarget.nama} berhasil dihapus`)
       fetchData()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus. Coba lagi.')
@@ -119,6 +126,7 @@ export default function MasterLantaiPage() {
       await fetchApi('/api/lantai', { method: 'DELETE' })
       setDeleteAllOpen(false)
       setDeleteError('')
+      successToast('Semua lantai berhasil dihapus')
       fetchData()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus semua. Coba lagi.')
@@ -177,7 +185,25 @@ export default function MasterLantaiPage() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                  Memuat data...
+                  <div className="flex items-center justify-center gap-2">
+                    <LoaderCircle className="size-5 animate-spin" />
+                    Memuat data...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-12 text-center">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="size-8 text-destructive" />
+                    <span className="text-destructive font-medium">{error}</span>
+                    <button
+                      className="text-sm text-blue-600 hover:underline cursor-pointer"
+                      onClick={() => fetchData()}
+                    >
+                      Coba lagi
+                    </button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : filtered.map((lantai, idx) => (
@@ -249,65 +275,24 @@ export default function MasterLantaiPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Hapus satu */}
-      <Dialog open={!!deleteTarget} onOpenChange={() => { setDeleteTarget(null); setDeleteError('') }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-destructive" />
-              Hapus Lantai
-            </DialogTitle>
-            <DialogDescription>
-              Apakah Anda yakin ingin menghapus{' '}
-              <span className="font-semibold text-foreground">{deleteTarget?.nama}</span>?
-              Tindakan ini tidak dapat dibatalkan.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && (
-            <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
-              {deleteError}
-            </p>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setDeleteTarget(null); setDeleteError('') }}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Hapus
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={() => { setDeleteTarget(null); setDeleteError('') }}
+        title="Hapus Lantai"
+        description={`Apakah Anda yakin ingin menghapus ${deleteTarget?.nama}? Tindakan ini tidak dapat dibatalkan.`}
+        error={deleteError}
+        onConfirm={handleDelete}
+      />
 
-      {/* Hapus semua */}
-      <Dialog open={deleteAllOpen} onOpenChange={(o) => { setDeleteAllOpen(o); if (!o) setDeleteError('') }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="size-5 text-destructive" />
-              Hapus Semua Lantai
-            </DialogTitle>
-            <DialogDescription>
-              Apakah Anda yakin ingin menghapus{' '}
-              <span className="font-semibold text-foreground">seluruh {data.length} lantai</span>?
-              Tindakan ini tidak dapat dibatalkan.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteError && (
-            <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
-              {deleteError}
-            </p>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => { setDeleteAllOpen(false); setDeleteError('') }}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteAll}>
-              Hapus Semua
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={deleteAllOpen}
+        onOpenChange={(o) => { setDeleteAllOpen(o); if (!o) setDeleteError('') }}
+        title="Hapus Semua Lantai"
+        description={`Apakah Anda yakin ingin menghapus seluruh ${data.length} lantai? Tindakan ini tidak dapat dibatalkan.`}
+        error={deleteError}
+        onConfirm={handleDeleteAll}
+        confirmText="Hapus Semua"
+      />
     </div>
   )
 }
