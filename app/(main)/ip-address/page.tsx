@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState } from 'react'
 import { Pencil, Trash2, LoaderCircle, AlertCircle, Network } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,8 +14,10 @@ import {
 import { StatusBadge } from '@/components/status-badge'
 import { Toolbar } from '@/components/toolbar'
 import { IpForm } from '@/components/ip-form'
+import { DataTablePagination } from '@/components/data-table-pagination'
 import { fetchApi } from '@/lib/api'
-import type { IpListResponse, IpApiItem } from '@/lib/api'
+import type { IpApiItem } from '@/lib/api'
+import { useIpList } from '@/lib/hooks'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { successToast } from '@/lib/use-toast'
 
@@ -32,46 +34,14 @@ export default function IpAddressPage() {
   const [deleteTarget, setDeleteTarget] = useState<IpApiItem | null>(null)
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const [deleteError, setDeleteError] = useState('')
-  const [data, setData] = useState<IpListResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (floorFilter !== 'all') params.set('lantai', floorFilter)
-    if (deptFilter !== 'all') params.set('departemen', deptFilter)
-    if (statusFilter !== 'all') params.set('status', statusFilter)
-    params.set('page', String(page))
-    params.set('limit', String(PER_PAGE))
+  const params: Record<string, string> = { page: String(page), limit: String(PER_PAGE) }
+  if (search) params.search = search
+  if (floorFilter !== 'all') params.lantai = floorFilter
+  if (deptFilter !== 'all') params.departemen = deptFilter
+  if (statusFilter !== 'all') params.status = statusFilter
 
-    try {
-      const res = await fetchApi<IpListResponse>(`/api/ip-address?${params}`)
-      setData(res)
-      setError('')
-    } catch {
-      setData(null)
-      setError('Gagal memuat data. Periksa koneksi server.')
-    } finally {
-      setLoading(false)
-    }
-  }, [search, floorFilter, deptFilter, statusFilter, page])
-
-  useEffect(() => {
-    Promise.resolve().then(fetchData)
-  }, [fetchData])
-
-  const totalPages = data?.totalPages ?? 1
-  const pageButtons = useMemo(() => {
-    const pages: number[] = []
-    const startPage = Math.max(1, Math.min(page - 2, totalPages - 4))
-    const endPage = Math.min(totalPages, startPage + 4)
-    for (let i = startPage; i <= endPage; i++) pages.push(i)
-    if (startPage > 1) pages.unshift(-1)
-    if (endPage < totalPages) pages.push(-1)
-    return pages
-  }, [page, totalPages])
+  const { data, error, isLoading, mutate } = useIpList(params)
 
   const handleEdit = (ip: IpApiItem) => {
     setEditData(ip)
@@ -85,7 +55,7 @@ export default function IpAddressPage() {
       setDeleteTarget(null)
       setDeleteError('')
       successToast(`IP ${deleteTarget.ipAddress} berhasil dihapus`)
-      fetchData()
+      mutate()
     } catch {
       setDeleteError('Gagal menghapus IP. Coba lagi.')
     }
@@ -97,15 +67,10 @@ export default function IpAddressPage() {
       setDeleteAllOpen(false)
       setPage(1)
       successToast('Semua IP Address berhasil dihapus')
-      fetchData()
+      mutate()
     } catch {
       setDeleteAllOpen(false)
     }
-  }
-
-  const handleAdd = () => {
-    setEditData(null)
-    setFormOpen(true)
   }
 
   return (
@@ -126,7 +91,7 @@ export default function IpAddressPage() {
         onDeptChange={(v) => { setDeptFilter(v ?? ''); setPage(1) }}
         statusFilter={statusFilter}
         onStatusChange={(v) => { setStatusFilter(v ?? ''); setPage(1) }}
-        onAdd={handleAdd}
+        onAdd={() => { setEditData(null); setFormOpen(true) }}
         onDeleteAll={() => setDeleteAllOpen(true)}
       />
 
@@ -147,7 +112,7 @@ export default function IpAddressPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={10} className="py-20 text-center text-muted-foreground">
                   <div className="flex flex-col items-center gap-2">
@@ -161,10 +126,10 @@ export default function IpAddressPage() {
                 <TableCell colSpan={10} className="py-20 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <AlertCircle className="size-8 text-destructive" />
-                    <span className="text-destructive font-medium">{error}</span>
+                    <span className="text-destructive font-medium">Gagal memuat data. Periksa koneksi server.</span>
                     <button
                       className="text-sm text-blue-600 hover:underline cursor-pointer"
-                      onClick={() => Promise.resolve().then(fetchData)}
+                      onClick={() => mutate()}
                     >
                       Coba lagi
                     </button>
@@ -200,7 +165,7 @@ export default function IpAddressPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {!loading && !error && data?.data.length === 0 && (
+            {!isLoading && !error && data?.data.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10} className="py-20 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -215,54 +180,14 @@ export default function IpAddressPage() {
         </Table>
       </div>
 
-      {data && !loading && !error && (
-        <div className="flex items-center justify-between rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 px-4 py-3 text-sm shadow-xs transition-colors">
-          <p className="text-muted-foreground">
-            Menampilkan{' '}
-            <span className="font-medium text-foreground">
-              {data.total === 0 ? 0 : (page - 1) * PER_PAGE + 1}-{Math.min(page * PER_PAGE, data.total)}
-            </span>{' '}
-            dari{' '}
-            <span className="font-medium text-foreground">{data.total}</span> data
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-            >
-              Sebelumnya
-            </Button>
-            <div className="flex items-center gap-1 px-2">
-              {pageButtons.map((p, i) =>
-                p === -1 ? (
-                  <span key={`ellipsis-${i}`} className="px-1 text-muted-foreground">
-                    ...
-                  </span>
-                ) : (
-                  <Button
-                    key={p}
-                    variant={page === p ? 'default' : 'ghost'}
-                    size="xs"
-                    className="min-w-7"
-                    onClick={() => setPage(p)}
-                  >
-                    {p}
-                  </Button>
-                ),
-              )}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= (data?.totalPages ?? 1)}
-              onClick={() => setPage(page + 1)}
-            >
-              Selanjutnya
-            </Button>
-          </div>
-        </div>
+      {data && (
+        <DataTablePagination
+          page={page}
+          totalPages={data.totalPages}
+          total={data.total}
+          perPage={PER_PAGE}
+          onPageChange={setPage}
+        />
       )}
 
       <ConfirmDeleteDialog
@@ -283,7 +208,7 @@ export default function IpAddressPage() {
         confirmText="Hapus Semua"
       />
 
-      <IpForm open={formOpen} onOpenChange={setFormOpen} editData={editData} onSaved={fetchData} />
+      <IpForm open={formOpen} onOpenChange={setFormOpen} editData={editData} onSaved={() => mutate()} />
     </div>
   )
 }

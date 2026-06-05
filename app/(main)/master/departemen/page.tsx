@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Pencil, Trash2, Plus, Search, AlertCircle, LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,18 +27,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DataTablePagination } from '@/components/data-table-pagination'
 import { fetchApi } from '@/lib/api'
-import type { DepartemenMasterItem, LantaiItem } from '@/lib/api'
+import type { DepartemenMasterItem } from '@/lib/api'
+import { useDepartemenMaster, useLantaiList } from '@/lib/hooks'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { successToast } from '@/lib/use-toast'
 
+const PER_PAGE = 10
+
 export default function MasterDepartemenPage() {
-  const [data, setData] = useState<DepartemenMasterItem[]>([])
-  const [floors, setFloors] = useState<LantaiItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { data, error, isLoading, mutate } = useDepartemenMaster()
+  const { data: floors = [] } = useLantaiList()
   const [search, setSearch] = useState('')
   const [floorFilter, setFloorFilter] = useState('all')
+  const [page, setPage] = useState(1)
 
   const [formOpen, setFormOpen] = useState(false)
   const [editData, setEditData] = useState<DepartemenMasterItem | null>(null)
@@ -51,33 +54,13 @@ export default function MasterDepartemenPage() {
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const [deptRes, floorRes] = await Promise.all([
-        fetchApi<DepartemenMasterItem[]>('/api/departemen'),
-        fetchApi<LantaiItem[]>('/api/lantai'),
-      ])
-      setData(deptRes)
-      setFloors(floorRes)
-    } catch {
-      setData([])
-      setError('Gagal memuat data departemen.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    Promise.resolve().then(fetchData)
-  }, [fetchData])
-
-  const filtered = data.filter((d) => {
+  const allData = (data ?? []).filter((d) => {
     const matchSearch = search ? d.nama.toLowerCase().includes(search.toLowerCase()) : true
     const matchFloor = floorFilter !== 'all' ? d.lantaiId === floorFilter : true
     return matchSearch && matchFloor
   })
+  const totalPages = Math.max(1, Math.ceil(allData.length / PER_PAGE))
+  const paged = allData.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
   const handleAdd = () => {
     setEditData(null)
@@ -123,7 +106,7 @@ export default function MasterDepartemenPage() {
       }
       setFormOpen(false)
       successToast(editData ? `Departemen ${trimmed} berhasil diperbarui` : `Departemen ${trimmed} berhasil ditambahkan`)
-      fetchData()
+      mutate()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Gagal menyimpan. Coba lagi.')
     } finally {
@@ -138,7 +121,7 @@ export default function MasterDepartemenPage() {
       setDeleteTarget(null)
       setDeleteError('')
       successToast(`Departemen ${deleteTarget.nama} berhasil dihapus`)
-      fetchData()
+      mutate()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus. Coba lagi.')
     }
@@ -150,7 +133,7 @@ export default function MasterDepartemenPage() {
       setDeleteAllOpen(false)
       setDeleteError('')
       successToast('Semua departemen berhasil dihapus')
-      fetchData()
+      mutate()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus semua. Coba lagi.')
     }
@@ -171,7 +154,7 @@ export default function MasterDepartemenPage() {
             size="sm"
             className="h-9 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={() => { setDeleteError(''); setDeleteAllOpen(true) }}
-            disabled={data.length === 0}
+            disabled={allData.length === 0}
           >
             <Trash2 className="size-4" />
             Hapus Semua
@@ -190,10 +173,10 @@ export default function MasterDepartemenPage() {
             placeholder="Cari departemen..."
             className="h-9 pl-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           />
         </div>
-        <Select value={floorFilter} onValueChange={(v) => setFloorFilter(v ?? 'all')}>
+        <Select value={floorFilter} onValueChange={(v) => { setFloorFilter(v ?? 'all'); setPage(1) }}>
           <SelectTrigger className="h-9 w-36">
             <SelectValue placeholder="Lantai" />
           </SelectTrigger>
@@ -218,7 +201,7 @@ export default function MasterDepartemenPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
@@ -232,19 +215,19 @@ export default function MasterDepartemenPage() {
                 <TableCell colSpan={5} className="py-12 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <AlertCircle className="size-8 text-destructive" />
-                    <span className="text-destructive font-medium">{error}</span>
+                    <span className="text-destructive font-medium">Gagal memuat data departemen.</span>
                     <button
                       className="text-sm text-blue-600 hover:underline cursor-pointer"
-                      onClick={() => fetchData()}
+                      onClick={() => mutate()}
                     >
                       Coba lagi
                     </button>
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filtered.map((dept, idx) => (
+            ) : paged.map((dept, idx) => (
               <TableRow key={dept.id} className="even:bg-muted/20 dark:even:bg-zinc-800/20">
-                <TableCell className="text-center text-muted-foreground">{idx + 1}</TableCell>
+                <TableCell className="text-center text-muted-foreground">{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                 <TableCell className="font-medium">{dept.nama}</TableCell>
                 <TableCell>{dept.lantai.nama}</TableCell>
                 <TableCell className="text-center">{dept._count.ipAddresses}</TableCell>
@@ -265,7 +248,7 @@ export default function MasterDepartemenPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {!loading && filtered.length === 0 && (
+            {!isLoading && !error && paged.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                   Tidak ada data ditemukan
@@ -275,6 +258,16 @@ export default function MasterDepartemenPage() {
           </TableBody>
         </Table>
       </div>
+
+      {allData.length > PER_PAGE && (
+        <DataTablePagination
+          page={page}
+          totalPages={totalPages}
+          total={allData.length}
+          perPage={PER_PAGE}
+          onPageChange={setPage}
+        />
+      )}
 
       {/* Form tambah / edit */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -344,7 +337,7 @@ export default function MasterDepartemenPage() {
         open={deleteAllOpen}
         onOpenChange={(o) => { setDeleteAllOpen(o); if (!o) setDeleteError('') }}
         title="Hapus Semua Departemen"
-        description={`Apakah Anda yakin ingin menghapus seluruh ${data.length} departemen? Tindakan ini tidak dapat dibatalkan.`}
+        description={`Apakah Anda yakin ingin menghapus seluruh ${allData.length} departemen? Tindakan ini tidak dapat dibatalkan.`}
         error={deleteError}
         onConfirm={handleDeleteAll}
         confirmText="Hapus Semua"

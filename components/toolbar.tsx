@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Search, Download, Plus, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -11,8 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { fetchApi } from '@/lib/api'
-import type { LantaiItem, DepartemenItem } from '@/lib/api'
+import { useLantaiList, useDepartemenList } from '@/lib/hooks'
 import { infoToast } from '@/lib/use-toast'
 
 interface ToolbarProps {
@@ -40,17 +38,12 @@ export function Toolbar({
   onAdd,
   onDeleteAll,
 }: ToolbarProps) {
-  const [floors, setFloors] = useState<LantaiItem[]>([])
-  const [departments, setDepartments] = useState<DepartemenItem[]>([])
-
-  useEffect(() => {
-    fetchApi<LantaiItem[]>('/api/lantai').then(setFloors).catch(() => {})
-    fetchApi<DepartemenItem[]>('/api/departemen').then(setDepartments).catch(() => {})
-  }, [])
+  const { data: floors } = useLantaiList()
+  const { data: departments } = useDepartemenList()
 
   const filteredDepts = floorFilter && floorFilter !== 'all'
-    ? departments.filter((d) => d.lantaiId === floorFilter)
-    : departments
+    ? (departments ?? []).filter((d) => d.lantaiId === floorFilter)
+    : (departments ?? [])
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -70,7 +63,7 @@ export function Toolbar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Semua Lantai</SelectItem>
-          {floors.map((f) => (
+          {(floors ?? []).map((f) => (
             <SelectItem key={f.id} value={f.id}>{f.nama}</SelectItem>
           ))}
         </SelectContent>

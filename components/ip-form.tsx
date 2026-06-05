@@ -25,9 +25,10 @@ import {
 } from '@/components/ui/radio-group'
 import { deviceTypes, isValidIp, isIpDuplicate } from '@/lib/constants'
 import { fetchApi } from '@/lib/api'
+import { useLantaiList, useDepartemenList } from '@/lib/hooks'
 import { successToast } from '@/lib/use-toast'
 import type { IpStatus } from '@/lib/constants'
-import type { LantaiItem, DepartemenItem, IpApiItem } from '@/lib/api'
+import type { IpApiItem } from '@/lib/api'
 import { AlertCircle, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -65,13 +66,8 @@ const emptyForm: FormState = {
 }
 
 export function IpForm({ open, onOpenChange, editData, onSaved }: IpFormProps) {
-  const [floors, setFloors] = useState<LantaiItem[]>([])
-  const [departments, setDepartments] = useState<DepartemenItem[]>([])
-
-  useEffect(() => {
-    fetchApi<LantaiItem[]>('/api/lantai').then(setFloors).catch(() => {})
-    fetchApi<DepartemenItem[]>('/api/departemen').then(setDepartments).catch(() => {})
-  }, [])
+  const { data: floors = [] } = useLantaiList()
+  const { data: departments = [] } = useDepartemenList()
 
   const [form, setForm] = useState(emptyForm)
   const [ipError, setIpError] = useState<string | null>(null)

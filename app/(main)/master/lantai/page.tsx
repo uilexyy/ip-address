@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Pencil, Trash2, Plus, Search, AlertCircle, LoaderCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,16 +20,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { DataTablePagination } from '@/components/data-table-pagination'
 import { fetchApi } from '@/lib/api'
 import type { LantaiMasterItem } from '@/lib/api'
+import { useLantaiMaster } from '@/lib/hooks'
 import { ConfirmDeleteDialog } from '@/components/confirm-delete-dialog'
 import { successToast } from '@/lib/use-toast'
 
+const PER_PAGE = 10
+
 export default function MasterLantaiPage() {
-  const [data, setData] = useState<LantaiMasterItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { data, error, isLoading, mutate } = useLantaiMaster()
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
   const [formOpen, setFormOpen] = useState(false)
   const [editData, setEditData] = useState<LantaiMasterItem | null>(null)
@@ -41,27 +44,12 @@ export default function MasterLantaiPage() {
   const [deleteAllOpen, setDeleteAllOpen] = useState(false)
   const [deleteError, setDeleteError] = useState('')
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetchApi<LantaiMasterItem[]>('/api/lantai')
-      setData(res)
-    } catch {
-      setData([])
-      setError('Gagal memuat data lantai.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    Promise.resolve().then(fetchData)
-  }, [fetchData])
-
+  const allData = data ?? []
   const filtered = search
-    ? data.filter((l) => l.nama.toLowerCase().includes(search.toLowerCase()))
-    : data
+    ? allData.filter((l) => l.nama.toLowerCase().includes(search.toLowerCase()))
+    : allData
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
+  const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
   const handleAdd = () => {
     setEditData(null)
@@ -100,7 +88,7 @@ export default function MasterLantaiPage() {
       }
       setFormOpen(false)
       successToast(editData ? `Lantai ${trimmed} berhasil diperbarui` : `Lantai ${trimmed} berhasil ditambahkan`)
-      fetchData()
+      mutate()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Gagal menyimpan. Coba lagi.')
     } finally {
@@ -115,7 +103,7 @@ export default function MasterLantaiPage() {
       setDeleteTarget(null)
       setDeleteError('')
       successToast(`Lantai ${deleteTarget.nama} berhasil dihapus`)
-      fetchData()
+      mutate()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus. Coba lagi.')
     }
@@ -127,7 +115,7 @@ export default function MasterLantaiPage() {
       setDeleteAllOpen(false)
       setDeleteError('')
       successToast('Semua lantai berhasil dihapus')
-      fetchData()
+      mutate()
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Gagal menghapus semua. Coba lagi.')
     }
@@ -148,7 +136,7 @@ export default function MasterLantaiPage() {
             size="sm"
             className="h-9 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={() => { setDeleteError(''); setDeleteAllOpen(true) }}
-            disabled={data.length === 0}
+            disabled={allData.length === 0}
           >
             <Trash2 className="size-4" />
             Hapus Semua
@@ -166,7 +154,7 @@ export default function MasterLantaiPage() {
           placeholder="Cari lantai..."
           className="h-9 pl-9"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
         />
       </div>
 
@@ -182,7 +170,7 @@ export default function MasterLantaiPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
@@ -196,19 +184,19 @@ export default function MasterLantaiPage() {
                 <TableCell colSpan={5} className="py-12 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <AlertCircle className="size-8 text-destructive" />
-                    <span className="text-destructive font-medium">{error}</span>
+                    <span className="text-destructive font-medium">Gagal memuat data lantai.</span>
                     <button
                       className="text-sm text-blue-600 hover:underline cursor-pointer"
-                      onClick={() => fetchData()}
+                      onClick={() => mutate()}
                     >
                       Coba lagi
                     </button>
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filtered.map((lantai, idx) => (
+            ) : paged.map((lantai, idx) => (
               <TableRow key={lantai.id} className="even:bg-muted/20 dark:even:bg-zinc-800/20">
-                <TableCell className="text-center text-muted-foreground">{idx + 1}</TableCell>
+                <TableCell className="text-center text-muted-foreground">{(page - 1) * PER_PAGE + idx + 1}</TableCell>
                 <TableCell className="font-medium">{lantai.nama}</TableCell>
                 <TableCell className="text-center">{lantai._count.departemens}</TableCell>
                 <TableCell className="text-center">{lantai._count.ipAddresses}</TableCell>
@@ -229,7 +217,7 @@ export default function MasterLantaiPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {!loading && filtered.length === 0 && (
+            {!isLoading && !error && paged.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                   Tidak ada data ditemukan
@@ -239,6 +227,16 @@ export default function MasterLantaiPage() {
           </TableBody>
         </Table>
       </div>
+
+      {filtered.length > PER_PAGE && (
+        <DataTablePagination
+          page={page}
+          totalPages={totalPages}
+          total={filtered.length}
+          perPage={PER_PAGE}
+          onPageChange={setPage}
+        />
+      )}
 
       {/* Form tambah / edit */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -288,7 +286,7 @@ export default function MasterLantaiPage() {
         open={deleteAllOpen}
         onOpenChange={(o) => { setDeleteAllOpen(o); if (!o) setDeleteError('') }}
         title="Hapus Semua Lantai"
-        description={`Apakah Anda yakin ingin menghapus seluruh ${data.length} lantai? Tindakan ini tidak dapat dibatalkan.`}
+        description={`Apakah Anda yakin ingin menghapus seluruh ${allData.length} lantai? Tindakan ini tidak dapat dibatalkan.`}
         error={deleteError}
         onConfirm={handleDeleteAll}
         confirmText="Hapus Semua"

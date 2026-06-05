@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { Search, AlertCircle, LoaderCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -19,8 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { fetchApi } from '@/lib/api'
-import type { HistoryListResponse } from '@/lib/api'
+import { DataTablePagination } from '@/components/data-table-pagination'
+import { useHistoryList } from '@/lib/hooks'
 
 const PER_PAGE = 20
 
@@ -49,33 +48,12 @@ export default function HistoryPage() {
   const [search, setSearch] = useState('')
   const [aksiFilter, setAksiFilter] = useState('all')
   const [page, setPage] = useState(1)
-  const [data, setData] = useState<HistoryListResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
-    setError('')
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (aksiFilter !== 'all') params.set('aksi', aksiFilter)
-    params.set('page', String(page))
-    params.set('limit', String(PER_PAGE))
+  const params: Record<string, string> = { page: String(page), limit: String(PER_PAGE) }
+  if (search) params.search = search
+  if (aksiFilter !== 'all') params.aksi = aksiFilter
 
-    try {
-      const res = await fetchApi<HistoryListResponse>(`/api/history?${params}`)
-      setData(res)
-    } catch {
-      setData(null)
-      setError('Gagal memuat riwayat aktivitas.')
-    } finally {
-      setLoading(false)
-    }
-  }, [search, aksiFilter, page])
-
-  useEffect(() => {
-    Promise.resolve().then(fetchData)
-  }, [fetchData])
+  const { data, error, isLoading } = useHistoryList(params)
 
   return (
     <div className="space-y-6">
@@ -122,7 +100,7 @@ export default function HistoryPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isLoading ? (
               <TableRow>
                 <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
@@ -136,13 +114,7 @@ export default function HistoryPage() {
                 <TableCell colSpan={6} className="py-12 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <AlertCircle className="size-8 text-destructive" />
-                    <span className="text-destructive font-medium">{error}</span>
-                    <button
-                      className="text-sm text-blue-600 hover:underline cursor-pointer"
-                      onClick={() => fetchData()}
-                    >
-                      Coba lagi
-                    </button>
+                    <span className="text-destructive font-medium">Gagal memuat riwayat aktivitas.</span>
                   </div>
                 </TableCell>
               </TableRow>
@@ -163,7 +135,7 @@ export default function HistoryPage() {
                 <TableCell className="text-muted-foreground">{h.detail ?? '-'}</TableCell>
               </TableRow>
             ))}
-            {!loading && data?.data.length === 0 && (
+            {!isLoading && !error && data?.data.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
                   Belum ada riwayat aktivitas
@@ -174,35 +146,15 @@ export default function HistoryPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border border-zinc-200/60 dark:border-zinc-800/40 bg-white dark:bg-zinc-900 px-4 py-3 text-sm shadow-xs transition-colors">
-        <p className="text-muted-foreground">
-          Menampilkan <span className="font-medium text-foreground">
-            {data && data.total > 0 ? (page - 1) * PER_PAGE + 1 : 0}-{data ? Math.min(page * PER_PAGE, data.total) : 0}
-          </span> dari{' '}
-          <span className="font-medium text-foreground">{data?.total ?? 0}</span> aktivitas
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-          >
-            Sebelumnya
-          </Button>
-          <span className="px-2 text-muted-foreground">
-            Halaman {page} / {data?.totalPages || 1}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={data ? page >= data.totalPages : true}
-            onClick={() => setPage(page + 1)}
-          >
-            Selanjutnya
-          </Button>
-        </div>
-      </div>
+      {data && (
+        <DataTablePagination
+          page={page}
+          totalPages={data.totalPages}
+          total={data.total}
+          perPage={PER_PAGE}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   )
 }
